@@ -19,18 +19,27 @@ function DatabaseGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (ready) return;
+    // 部分内嵌浏览器（如 Electron 套壳）不开放 SharedArrayBuffer，数据库无法同步调用，
+    // 直接给出可操作的提示，避免抛出一屏报错堆栈
+    if (typeof SharedArrayBuffer === 'undefined') {
+      setError(
+        '当前浏览器缺少运行所需的能力（SharedArrayBuffer）。\n\n请复制地址 http://localhost:8082，用 Chrome 或 Edge 打开。',
+      );
+      return;
+    }
     warmUpDatabase()
       .then(() => setReady(true))
-      .catch((e) => setError(e?.message ?? String(e)));
+      .catch((e) =>
+        setError(
+          `数据库初始化失败：${e?.message ?? String(e)}\n\n浏览器同一时间只允许一个标签页打开本应用，请关闭其他标签页后刷新。`,
+        ),
+      );
   }, [ready]);
 
   if (error) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
-        <Text style={{ fontSize: 15, textAlign: 'center', lineHeight: 22 }}>
-          数据库初始化失败：{error}{'\n\n'}
-          浏览器同一时间只允许一个标签页打开本应用，请关闭其他标签页后刷新。
-        </Text>
+        <Text style={{ fontSize: 15, textAlign: 'center', lineHeight: 22 }}>{error}</Text>
       </View>
     );
   }
