@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Platform } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useUpdates, reloadAsync } from 'expo-updates';
 import dayjs from 'dayjs';
@@ -15,14 +15,25 @@ dayjs.locale('zh-cn');
 // Web 端要等数据库 worker 预热完成再渲染，否则首次同步查询会死锁超时；原生端直接放行
 function DatabaseGate({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(Platform.OS !== 'web');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (ready) return;
     warmUpDatabase()
-      .catch(() => {})
-      .then(() => setReady(true));
+      .then(() => setReady(true))
+      .catch((e) => setError(e?.message ?? String(e)));
   }, [ready]);
 
+  if (error) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <Text style={{ fontSize: 15, textAlign: 'center', lineHeight: 22 }}>
+          数据库初始化失败：{error}{'\n\n'}
+          浏览器同一时间只允许一个标签页打开本应用，请关闭其他标签页后刷新。
+        </Text>
+      </View>
+    );
+  }
   if (!ready) return null;
   return <>{children}</>;
 }

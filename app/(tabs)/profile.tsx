@@ -103,20 +103,25 @@ export default function ProfileScreen() {
     );
 
     const csv = '﻿' + [header, ...rows].join('\n');
-    const filename = `账单导出_${currentMonth}.csv`;
-    const file = new FSFile(Paths.cache, filename);
-    await file.write(csv);
+    const filename = `账单全部记录_${dayjs().format('YYYY-MM-DD')}.csv`;
 
-    const canShare = await Sharing.isAvailableAsync();
-    if (canShare) {
+    try {
+      const file = new FSFile(Paths.cache, filename);
+      await file.write(csv);
+
+      const canShare = await Sharing.isAvailableAsync();
+      if (!canShare) {
+        showAlert('提示', '当前设备不支持分享功能');
+        return;
+      }
       await Sharing.shareAsync(file.uri, {
         mimeType: 'text/csv',
         dialogTitle: '导出账单',
       });
-    } else {
-      showAlert('提示', '当前设备不支持分享功能');
+    } catch (e: any) {
+      showAlert('导出失败', e?.message ?? String(e));
     }
-  }, [currentMonth]);
+  }, []);
 
   const budgetUsagePct =
     savedBudget && savedBudget.amount > 0

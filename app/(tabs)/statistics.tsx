@@ -75,12 +75,12 @@ export default function StatisticsScreen() {
 
     setCategoryStats(cats);
 
-    // 分类周趋势：本周 vs 上周支出
-    const now = dayjs();
-    const thisWeekStart = now.startOf('week').format('YYYY-MM-DD');
-    const thisWeekEnd = now.endOf('week').format('YYYY-MM-DD');
-    const lastWeekStart = now.subtract(1, 'week').startOf('week').format('YYYY-MM-DD');
-    const lastWeekEnd = now.subtract(1, 'week').endOf('week').format('YYYY-MM-DD');
+    // 分类周趋势：查看当月时比较本周 vs 上周；查看历史月份时以该月最后一天所在的周为基准
+    const anchor = currentMonth.isSame(dayjs(), 'month') ? dayjs() : currentMonth.endOf('month');
+    const thisWeekStart = anchor.startOf('week').format('YYYY-MM-DD');
+    const thisWeekEnd = anchor.endOf('week').format('YYYY-MM-DD');
+    const lastWeekStart = anchor.subtract(1, 'week').startOf('week').format('YYYY-MM-DD');
+    const lastWeekEnd = anchor.subtract(1, 'week').endOf('week').format('YYYY-MM-DD');
 
     const weekTransactions = db.getAllSync<Transaction>(
       'SELECT * FROM transactions WHERE date >= ? AND date <= ? AND type = ? ORDER BY date',
@@ -138,6 +138,8 @@ export default function StatisticsScreen() {
   };
 
   const isCurrentMonth = currentMonth.isSame(dayjs(), 'month');
+  const weekAnchor = isCurrentMonth ? dayjs() : currentMonth.endOf('month');
+  const [thisWeekLabel, lastWeekLabel] = isCurrentMonth ? ['本周', '上周'] : ['月末周', '前一周'];
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -201,8 +203,8 @@ export default function StatisticsScreen() {
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>分类周趋势</Text>
           <Text style={[styles.weekRange, { color: colors.textHint }]}>
-            {dayjs().startOf('week').format('M/D')} - {dayjs().endOf('week').format('M/D')} vs{' '}
-            {dayjs().subtract(1, 'week').startOf('week').format('M/D')} - {dayjs().subtract(1, 'week').endOf('week').format('M/D')}
+            {weekAnchor.startOf('week').format('M/D')} - {weekAnchor.endOf('week').format('M/D')} vs{' '}
+            {weekAnchor.subtract(1, 'week').startOf('week').format('M/D')} - {weekAnchor.subtract(1, 'week').endOf('week').format('M/D')}
           </Text>
           {weekCompare.length === 0 ? (
             <Text style={[styles.noData, { color: colors.textHint }]}>近两周暂无支出</Text>
@@ -210,8 +212,8 @@ export default function StatisticsScreen() {
             <>
               <View style={[styles.weekHeader, { borderBottomColor: colors.border }]}>
                 <Text style={[styles.weekHeaderLabel, { color: colors.textHint }, { flex: 1 }]}>分类</Text>
-                <Text style={[styles.weekHeaderLabel, { color: colors.textHint }, styles.weekAmt]}>本周</Text>
-                <Text style={[styles.weekHeaderLabel, { color: colors.textHint }, styles.weekAmt]}>上周</Text>
+                <Text style={[styles.weekHeaderLabel, { color: colors.textHint }, styles.weekAmt]}>{thisWeekLabel}</Text>
+                <Text style={[styles.weekHeaderLabel, { color: colors.textHint }, styles.weekAmt]}>{lastWeekLabel}</Text>
                 <Text style={[styles.weekHeaderLabel, { color: colors.textHint }, styles.weekChange]}>变化</Text>
               </View>
               {weekCompare.map((item) => {
