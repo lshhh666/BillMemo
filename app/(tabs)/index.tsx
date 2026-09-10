@@ -27,6 +27,23 @@ interface DailyGroup {
   transactions: Transaction[];
 }
 
+function groupByDate(transactions: Transaction[]): DailyGroup[] {
+  const grouped: Record<string, Transaction[]> = {};
+  transactions.forEach((t) => {
+    if (!grouped[t.date]) grouped[t.date] = [];
+    grouped[t.date].push(t);
+  });
+
+  return Object.entries(grouped)
+    .map(([date, items]) => ({
+      date,
+      dayLabel: dayjs(date).format('M月D日 dddd'),
+      dayTotal: items.reduce((sum, t) => sum + (t.type === 'expense' ? t.amount : -t.amount), 0),
+      transactions: items,
+    }))
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
 export default function HomeScreen() {
   const { colors } = useTheme();
   const [groups, setGroups] = useState<DailyGroup[]>([]);
@@ -56,32 +73,12 @@ export default function HomeScreen() {
 
     let totalExpense = 0;
     let totalIncome = 0;
-
-    const grouped: Record<string, Transaction[]> = {};
     transactions.forEach((t) => {
       if (t.type === 'expense') totalExpense += t.amount;
       else totalIncome += t.amount;
-
-      if (!grouped[t.date]) grouped[t.date] = [];
-      grouped[t.date].push(t);
     });
 
-    const dailyGroups: DailyGroup[] = Object.entries(grouped).map(([date, items]) => {
-      const dayTotal = items.reduce((sum, t) => {
-        return sum + (t.type === 'expense' ? t.amount : -t.amount);
-      }, 0);
-
-      return {
-        date,
-        dayLabel: dayjs(date).format('M月D日 dddd'),
-        dayTotal,
-        transactions: items,
-      };
-    });
-
-    dailyGroups.sort((a, b) => b.date.localeCompare(a.date));
-
-    setGroups(dailyGroups);
+    setGroups(groupByDate(transactions));
     setSummary({ totalExpense, totalIncome, balance: totalIncome - totalExpense });
   }, []);
 
@@ -111,39 +108,23 @@ export default function HomeScreen() {
     [loadData],
   );
 
-  // 搜索过滤
-  const filteredGroups = useMemo(() => {
-    if (!searchText.trim()) return groups;
-
+  // 搜索：直接查库，覆盖所有月份（列表本身只展示当月）
+  const searchGroups = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
-    const filtered: DailyGroup[] = [];
+    if (!keyword) return null;
 
-    groups.forEach((group) => {
-      const matchedTransactions = group.transactions.filter((t) => {
-        // 搜索备注
-        if (t.note && t.note.toLowerCase().includes(keyword)) return true;
-        // 搜索分类
-        if (t.category_name.toLowerCase().includes(keyword)) return true;
-        // 搜索金额
-        if (t.amount.toString().includes(keyword)) return true;
-        return false;
-      });
+    const db = getDatabase();
+    const pattern = `%${keyword}%`;
+    const rows = db.getAllSync<Transaction>(
+      'SELECT * FROM transactions WHERE LOWER(note) LIKE ? OR LOWER(category_name) LIKE ? OR CAST(amount AS TEXT) LIKE ? ORDER BY date DESC, created_at DESC',
+      pattern,
+      pattern,
+      pattern,
+    );
+    return groupByDate(rows);
+  }, [searchText, groups]);
 
-      if (matchedTransactions.length > 0) {
-        const dayTotal = matchedTransactions.reduce((sum, t) => {
-          return sum + (t.type === 'expense' ? t.amount : -t.amount);
-        }, 0);
-
-        filtered.push({
-          ...group,
-          dayTotal,
-          transactions: matchedTransactions,
-        });
-      }
-    });
-
-    return filtered;
-  }, [groups, searchText]);
+  const filteredGroups = searchGroups ?? groups;
 
   // 搜索统计
   const searchStats = useMemo(() => {

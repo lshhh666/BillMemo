@@ -6,7 +6,6 @@ import { useTheme } from '../context/ThemeContext';
 interface Slice {
   label: string;
   value: number;
-  color: string;
 }
 
 interface Props {

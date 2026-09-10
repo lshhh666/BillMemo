@@ -19,7 +19,6 @@ import type { Transaction } from '../../src/types';
 interface CategoryStat {
   label: string;
   value: number;
-  color: string;
 }
 
 interface WeekCompareItem {
@@ -66,11 +65,7 @@ export default function StatisticsScreen() {
     setTotalIncome(income);
 
     const cats: CategoryStat[] = Object.entries(catMap)
-      .map(([label, value], i) => ({
-        label,
-        value,
-        color: PIE_COLORS[i % PIE_COLORS.length],
-      }))
+      .map(([label, value]) => ({ label, value }))
       .sort((a, b) => b.value - a.value);
 
     setCategoryStats(cats);

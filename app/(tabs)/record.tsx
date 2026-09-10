@@ -15,6 +15,7 @@ import * as Haptics from 'expo-haptics';
 import dayjs from 'dayjs';
 import { AmountInput } from '../../src/components/AmountInput';
 import { CategoryGrid } from '../../src/components/CategoryGrid';
+import { DatePickerModal } from '../../src/components/DatePickerModal';
 import { getDatabase } from '../../src/database';
 import { useTheme } from '../../src/context/ThemeContext';
 import { showAlert } from '../../src/utils/alert';
@@ -27,6 +28,7 @@ export default function RecordScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [date, setDate] = useState(dayjs().format('YYYY-MM-DD'));
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
 
   const loadCategories = useCallback(() => {
@@ -186,10 +188,13 @@ export default function RecordScreen() {
                 <TouchableOpacity
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    showAlert('提示', '日期编辑功能将在后续迭代中实现');
+                    setDatePickerVisible(true);
                   }}
                 >
-                  <Text style={[styles.detailValue, { color: colors.textPrimary }]}>{date}</Text>
+                  <Text style={[styles.detailValue, { color: colors.textPrimary }]}>
+                    {date}
+                    {date === dayjs().format('YYYY-MM-DD') ? '（今天）' : ''}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -205,6 +210,16 @@ export default function RecordScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <DatePickerModal
+        visible={datePickerVisible}
+        value={date}
+        onClose={() => setDatePickerVisible(false)}
+        onSelect={(d) => {
+          setDate(d);
+          setDatePickerVisible(false);
+        }}
+      />
     </SafeAreaView>
   );
 }

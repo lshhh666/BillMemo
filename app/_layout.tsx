@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useUpdates, reloadAsync } from 'expo-updates';
 import dayjs from 'dayjs';
@@ -40,7 +40,7 @@ function DatabaseGate({ children }: { children: ReactNode }) {
 
 function RootLayoutInner() {
   const { isUpdatePending } = useUpdates();
-  const { isDark } = useTheme();
+  const { colors, isDark } = useTheme();
   const hasPrompted = useRef(false);
 
   useEffect(() => {
@@ -62,7 +62,7 @@ function RootLayoutInner() {
     }
   }, [isUpdatePending]);
 
-  return (
+  const content = (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }}>
@@ -70,7 +70,29 @@ function RootLayoutInner() {
       </Stack>
     </GestureHandlerRootView>
   );
+
+  // 桌面浏览器里按手机宽度居中显示，避免整个界面被拉成全屏宽
+  if (Platform.OS === 'web') {
+    return (
+      <View style={[styles.webShell, { backgroundColor: colors.background }]}>
+        <View style={styles.webFrame}>{content}</View>
+      </View>
+    );
+  }
+  return content;
 }
+
+const styles = StyleSheet.create({
+  webShell: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  webFrame: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 480,
+  },
+});
 
 export default function RootLayout() {
   return (
