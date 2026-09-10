@@ -70,11 +70,15 @@ export default function RecordScreen() {
     setEditingId(null);
   }, []);
 
-  const handleTypeChange = useCallback((type: TransactionType) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setRecordType(type);
-    setAmount('0');
-  }, []);
+  // 切换收支类型时保留已输入的金额：数字不需要重输，只有分类会随类型重新选择
+  const handleTypeChange = useCallback(
+    (type: TransactionType) => {
+      if (type === recordType) return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setRecordType(type);
+    },
+    [recordType],
+  );
 
   const handleCategorySelect = useCallback((cat: Category) => {
     setSelectedCategory(cat.name);
@@ -97,7 +101,7 @@ export default function RecordScreen() {
     const now = dayjs().format('YYYY-MM-DD HH:mm:ss');
 
     if (editingId !== null) {
-      db.runSync(
+      const result = db.runSync(
         'UPDATE transactions SET type = ?, amount = ?, category_name = ?, note = ?, date = ?, updated_at = ? WHERE id = ?',
         recordType,
         numAmount,
@@ -108,6 +112,10 @@ export default function RecordScreen() {
         editingId,
       );
       resetForm();
+      if (result.changes === 0) {
+        showAlert('保存失败', '这条记录已经被删除了');
+        return;
+      }
       showAlert('已保存', '记录已更新');
       router.replace('/');
       return;

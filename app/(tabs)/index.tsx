@@ -120,9 +120,10 @@ export default function HomeScreen() {
     if (!keyword) return null;
 
     const db = getDatabase();
-    const pattern = `%${keyword}%`;
+    // % 和 _ 在 LIKE 里是通配符，用户输入的要按字面匹配
+    const pattern = `%${keyword.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
     const rows = db.getAllSync<Transaction>(
-      'SELECT * FROM transactions WHERE LOWER(note) LIKE ? OR LOWER(category_name) LIKE ? OR CAST(amount AS TEXT) LIKE ? ORDER BY date DESC, created_at DESC',
+      "SELECT * FROM transactions WHERE LOWER(note) LIKE ? ESCAPE '\\' OR LOWER(category_name) LIKE ? ESCAPE '\\' OR CAST(amount AS TEXT) LIKE ? ESCAPE '\\' ORDER BY date DESC, created_at DESC",
       pattern,
       pattern,
       pattern,
