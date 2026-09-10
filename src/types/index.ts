@@ -18,6 +18,7 @@ export interface Category {
   icon: string;
   is_preset: number;
   sort_order: number;
+  created_at?: string;
 }
 
 export interface Budget {

@@ -7,23 +7,26 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Paths, File as FSFile } from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+import { File as FSFile } from 'expo-file-system';
+import * as DocumentPicker from 'expo-document-picker';
 import * as Updates from 'expo-updates';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import * as Haptics from 'expo-haptics';
 import { getDatabase } from '../../src/database';
+import { createBackup, parseBackup, restoreBackup } from '../../src/database/backup';
 import { useTheme } from '../../src/context/ThemeContext';
 import { showAlert } from '../../src/utils/alert';
+import { saveTextFile } from '../../src/utils/exportFile';
 import { UpdateModal } from '../../src/components/UpdateModal';
 import type { Transaction, Budget } from '../../src/types';
 
 export default function ProfileScreen() {
-  const { colors, mode, toggleTheme, isDark } = useTheme();
+  const { colors, toggleTheme, isDark, setTheme } = useTheme();
   const [budgetAmount, setBudgetAmount] = useState('');
   const [savedBudget, setSavedBudget] = useState<Budget | null>(null);
   const [monthExpense, setMonthExpense] = useState(0);
@@ -106,22 +109,62 @@ export default function ProfileScreen() {
     const filename = `账单全部记录_${dayjs().format('YYYY-MM-DD')}.csv`;
 
     try {
-      const file = new FSFile(Paths.cache, filename);
-      await file.write(csv);
-
-      const canShare = await Sharing.isAvailableAsync();
-      if (!canShare) {
-        showAlert('提示', '当前设备不支持分享功能');
-        return;
-      }
-      await Sharing.shareAsync(file.uri, {
-        mimeType: 'text/csv',
-        dialogTitle: '导出账单',
-      });
+      const saved = await saveTextFile(filename, csv, 'text/csv');
+      if (!saved) showAlert('提示', '当前设备不支持分享功能');
     } catch (e: any) {
       showAlert('导出失败', e?.message ?? String(e));
     }
   }, []);
+
+  const handleBackup = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const backup = createBackup();
+      const filename = `PureCash备份_${dayjs().format('YYYY-MM-DD')}.json`;
+      const saved = await saveTextFile(filename, JSON.stringify(backup, null, 2), 'application/json');
+      if (!saved) showAlert('提示', '当前设备不支持分享功能');
+    } catch (e: any) {
+      showAlert('备份失败', e?.message ?? String(e));
+    }
+  }, []);
+
+  const handleRestore = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true });
+      if (result.canceled) return;
+
+      const asset = result.assets[0];
+      const text =
+        Platform.OS === 'web' && asset.file ? await asset.file.text() : await new FSFile(asset.uri).text();
+      const backup = parseBackup(text);
+
+      showAlert(
+        '恢复数据',
+        `备份时间：${backup.exportedAt}\n包含 ${backup.transactions.length} 笔账单。\n\n恢复会覆盖当前全部数据，是否继续？`,
+        [
+          { text: '取消', style: 'cancel' },
+          {
+            text: '恢复',
+            style: 'destructive',
+            onPress: () => {
+              try {
+                const count = restoreBackup(backup);
+                const theme = backup.settings.find((s) => s.key === 'theme_mode')?.value;
+                if (theme === 'light' || theme === 'dark') setTheme(theme);
+                loadData();
+                showAlert('恢复完成', `已恢复 ${count} 笔账单`);
+              } catch (e: any) {
+                showAlert('恢复失败', e?.message ?? String(e));
+              }
+            },
+          },
+        ],
+      );
+    } catch (e: any) {
+      showAlert('恢复失败', e?.message ?? String(e));
+    }
+  }, [loadData, setTheme]);
 
   const budgetUsagePct =
     savedBudget && savedBudget.amount > 0
@@ -285,12 +328,34 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* 数据导出 */}
+        {/* 数据管理 */}
         <View style={[styles.card, { backgroundColor: colors.surface }]}>
           <TouchableOpacity style={styles.menuItem} onPress={handleExportCSV} activeOpacity={0.6}>
             <View style={styles.menuLeft}>
               <Ionicons name="download-outline" size={20} color={colors.textSecondary} />
               <Text style={[styles.menuText, { color: colors.textPrimary }]}>导出账单 CSV</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textPlaceholder} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.menuItem, styles.menuItemDivider, { borderTopColor: colors.border }]}
+            onPress={handleBackup}
+            activeOpacity={0.6}
+          >
+            <View style={styles.menuLeft}>
+              <Ionicons name="cloud-upload-outline" size={20} color={colors.textSecondary} />
+              <Text style={[styles.menuText, { color: colors.textPrimary }]}>备份全部数据</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textPlaceholder} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.menuItem, styles.menuItemDivider, { borderTopColor: colors.border }]}
+            onPress={handleRestore}
+            activeOpacity={0.6}
+          >
+            <View style={styles.menuLeft}>
+              <Ionicons name="folder-open-outline" size={20} color={colors.textSecondary} />
+              <Text style={[styles.menuText, { color: colors.textPrimary }]}>从备份恢复</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.textPlaceholder} />
           </TouchableOpacity>
@@ -451,6 +516,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 12,
+  },
+  menuItemDivider: {
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   menuLeft: {
     flexDirection: 'row',

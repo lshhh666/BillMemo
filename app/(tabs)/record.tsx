@@ -10,13 +10,14 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import dayjs from 'dayjs';
 import { AmountInput } from '../../src/components/AmountInput';
 import { CategoryGrid } from '../../src/components/CategoryGrid';
 import { DatePickerModal } from '../../src/components/DatePickerModal';
 import { getDatabase } from '../../src/database';
+import { takeEditRequest } from '../../src/state/editRequest';
 import { useTheme } from '../../src/context/ThemeContext';
 import { showAlert } from '../../src/utils/alert';
 import type { Category, TransactionType } from '../../src/types';
@@ -30,6 +31,7 @@ export default function RecordScreen() {
   const [date, setDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const loadCategories = useCallback(() => {
     const db = getDatabase();
@@ -47,6 +49,26 @@ export default function RecordScreen() {
   useEffect(() => {
     loadCategories();
   }, [loadCategories]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const request = takeEditRequest();
+      if (!request) return;
+      setEditingId(request.id);
+      setRecordType(request.type);
+      setAmount(String(request.amount));
+      setSelectedCategory(request.category_name);
+      setNote(request.note);
+      setDate(request.date);
+    }, []),
+  );
+
+  const resetForm = useCallback(() => {
+    setAmount('0');
+    setNote('');
+    setDate(dayjs().format('YYYY-MM-DD'));
+    setEditingId(null);
+  }, []);
 
   const handleTypeChange = useCallback((type: TransactionType) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -73,6 +95,24 @@ export default function RecordScreen() {
 
     const db = getDatabase();
     const now = dayjs().format('YYYY-MM-DD HH:mm:ss');
+
+    if (editingId !== null) {
+      db.runSync(
+        'UPDATE transactions SET type = ?, amount = ?, category_name = ?, note = ?, date = ?, updated_at = ? WHERE id = ?',
+        recordType,
+        numAmount,
+        selectedCategory,
+        note.trim(),
+        date,
+        now,
+        editingId,
+      );
+      resetForm();
+      showAlert('已保存', '记录已更新');
+      router.replace('/');
+      return;
+    }
+
     db.runSync(
       'INSERT INTO transactions (type, amount, category_name, note, date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
       recordType,
@@ -84,10 +124,7 @@ export default function RecordScreen() {
       now,
     );
 
-    // 重置表单
-    setAmount('0');
-    setNote('');
-    setDate(dayjs().format('YYYY-MM-DD'));
+    resetForm();
 
     showAlert('保存成功', '', [
       { text: '继续记', style: 'cancel' },
@@ -96,7 +133,7 @@ export default function RecordScreen() {
         onPress: () => router.replace('/'),
       },
     ]);
-  }, [amount, selectedCategory, note, date, recordType]);
+  }, [amount, selectedCategory, note, date, recordType, editingId, resetForm]);
 
   const accentColor = recordType === 'expense' ? colors.expense : colors.income;
 
@@ -107,7 +144,14 @@ export default function RecordScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.textPrimary }]}>记一笔</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>
+            {editingId !== null ? '编辑记录' : '记一笔'}
+          </Text>
+          {editingId !== null && (
+            <TouchableOpacity onPress={resetForm} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Text style={[styles.cancelEdit, { color: colors.primary }]}>取消编辑</Text>
+            </TouchableOpacity>
+          )}
         </View>
         <ScrollView
           style={styles.flex}
@@ -206,7 +250,7 @@ export default function RecordScreen() {
             onPress={handleSave}
             activeOpacity={0.8}
           >
-            <Text style={styles.saveText}>保存</Text>
+            <Text style={styles.saveText}>{editingId !== null ? '保存修改' : '保存'}</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -232,12 +276,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
   title: {
     fontSize: 26,
     fontWeight: '700',
+  },
+  cancelEdit: {
+    fontSize: 15,
+    fontWeight: '500',
   },
   scrollContent: {
     paddingBottom: 40,

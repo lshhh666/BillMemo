@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import dayjs from 'dayjs';
@@ -16,6 +16,7 @@ import { SummaryCard } from '../../src/components/SummaryCard';
 import { TransactionItem } from '../../src/components/TransactionItem';
 import { SwipeableRow } from '../../src/components/SwipeableRow';
 import { getDatabase } from '../../src/database';
+import { requestEdit } from '../../src/state/editRequest';
 import { useTheme } from '../../src/context/ThemeContext';
 import { showAlert } from '../../src/utils/alert';
 import type { Transaction, Category, MonthlySummary } from '../../src/types';
@@ -108,6 +109,11 @@ export default function HomeScreen() {
     [loadData],
   );
 
+  const handleEdit = useCallback((transaction: Transaction) => {
+    requestEdit(transaction);
+    router.push('/record');
+  }, []);
+
   // 搜索：直接查库，覆盖所有月份（列表本身只展示当月）
   const searchGroups = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
@@ -178,13 +184,16 @@ export default function HomeScreen() {
           <SwipeableRow
             key={t.id}
             onDelete={() => handleDelete(t)}
+            onEdit={() => handleEdit(t)}
           >
-            <TransactionItem transaction={t} categories={categories} />
+            <TouchableOpacity activeOpacity={0.7} onPress={() => handleEdit(t)}>
+              <TransactionItem transaction={t} categories={categories} />
+            </TouchableOpacity>
           </SwipeableRow>
         ))}
       </View>
     ),
-    [categories, handleDelete, colors],
+    [categories, handleDelete, handleEdit, colors],
   );
 
   const keyExtractor = useCallback((item: DailyGroup) => item.date, []);
