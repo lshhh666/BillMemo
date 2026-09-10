@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  useWindowDimensions,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../context/ThemeContext';
@@ -24,8 +23,6 @@ const KEYS = [
 
 export function AmountInput({ amount, onChange, type }: Props) {
   const { colors } = useTheme();
-  const { width } = useWindowDimensions();
-  const keySize = (width - 80) / 3;
   const accentColor = type === 'expense' ? colors.expense : colors.income;
 
   const handlePress = useCallback(
@@ -79,7 +76,7 @@ export function AmountInput({ amount, onChange, type }: Props) {
             {row.map((key) => (
               <TouchableOpacity
                 key={key}
-                style={[styles.key, { width: keySize, height: keySize * 0.85 }]}
+                style={styles.key}
                 onPress={() => handlePress(key)}
                 onLongPress={key === '⌫' ? handleLongPress : undefined}
                 activeOpacity={0.6}
@@ -123,10 +120,12 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    gap: 8,
     marginBottom: 4,
   },
   key: {
+    flex: 1,
+    aspectRatio: 1 / 0.85,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 12,

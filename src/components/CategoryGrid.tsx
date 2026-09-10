@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  useWindowDimensions,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../context/ThemeContext';
@@ -21,8 +20,6 @@ const COLS = 5;
 
 export function CategoryGrid({ categories, selected, onSelect, type }: Props) {
   const { colors } = useTheme();
-  const { width } = useWindowDimensions();
-  const itemWidth = (width - 64) / COLS;
   const accentColor = type === 'expense' ? colors.expense : colors.income;
 
   const handleSelect = useCallback(
@@ -44,7 +41,6 @@ export function CategoryGrid({ categories, selected, onSelect, type }: Props) {
               key={cat.id}
               style={[
                 styles.item,
-                { width: itemWidth },
                 isSelected && {
                   backgroundColor:
                     type === 'expense' ? 'rgba(231,76,60,0.1)' : colors.primaryLight,
@@ -98,6 +94,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   item: {
+    width: `${100 / COLS}%`,
     alignItems: 'center',
     paddingVertical: 10,
     borderRadius: 8,
