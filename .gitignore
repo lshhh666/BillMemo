@@ -42,3 +42,6 @@ yarn-error.*
 
 # 本地工具配置
 .claude/settings.local.json
+
+# E2E 截图与下载产物
+scripts/e2e/reports/

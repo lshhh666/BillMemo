@@ -1,6 +1,6 @@
 {
   "name": "purecash",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
@@ -8,6 +8,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "web:preview": "node scripts/web-preview.js",
+    "e2e:web": "node scripts/e2e/run.mjs",
+    "typecheck": "tsc --noEmit",
     "postinstall": "node scripts/patch-expo-sqlite-web.js"
   },
   "dependencies": {

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { File as FSFile } from 'expo-file-system';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Updates from 'expo-updates';
 import Constants from 'expo-constants';
+import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import * as Haptics from 'expo-haptics';
@@ -54,9 +55,12 @@ export default function ProfileScreen() {
     setMonthExpense(rows[0]?.total ?? 0);
   }, [currentMonth]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  // 每次进入页面重新加载：应用跨月保持打开时预算也要跟着切到新月
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData]),
+  );
 
   const handleSaveBudget = useCallback(() => {
     const num = parseFloat(budgetAmount);
