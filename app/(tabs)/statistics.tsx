@@ -12,9 +12,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import dayjs from 'dayjs';
 import { PieChart, PIE_COLORS } from '../../src/components/PieChart';
-import { getDatabase } from '../../src/database';
+import { listTransactionsBetween } from '../../src/database/transactions';
 import { useTheme } from '../../src/context/ThemeContext';
-import type { Transaction } from '../../src/types';
+import { monthRange, weekComparisonAnchor, weekRange } from '../../src/utils/dateRange';
 
 interface CategoryStat {
   label: string;
@@ -38,15 +38,7 @@ export default function StatisticsScreen() {
   const [weekCompare, setWeekCompare] = useState<WeekCompareItem[]>([]);
 
   const loadData = useCallback(() => {
-    const db = getDatabase();
-    const monthStart = currentMonth.startOf('month').format('YYYY-MM-DD');
-    const monthEnd = currentMonth.endOf('month').format('YYYY-MM-DD');
-
-    const transactions = db.getAllSync<Transaction>(
-      'SELECT * FROM transactions WHERE date >= ? AND date <= ? ORDER BY date',
-      monthStart,
-      monthEnd,
-    );
+    const transactions = listTransactionsBetween(monthRange(currentMonth));
 
     let expense = 0;
     let income = 0;
@@ -71,15 +63,12 @@ export default function StatisticsScreen() {
     setCategoryStats(cats);
 
     // 分类周趋势：查看当月时比较本周 vs 上周；查看历史月份时以该月最后一天所在的周为基准
-    const anchor = currentMonth.isSame(dayjs(), 'month') ? dayjs() : currentMonth.endOf('month');
-    const thisWeekStart = anchor.startOf('week').format('YYYY-MM-DD');
-    const thisWeekEnd = anchor.endOf('week').format('YYYY-MM-DD');
-    const lastWeekStart = anchor.subtract(1, 'week').startOf('week').format('YYYY-MM-DD');
+    const anchor = weekComparisonAnchor(currentMonth);
+    const thisWeek = weekRange(anchor);
+    const lastWeek = weekRange(anchor.subtract(1, 'week'));
 
-    const weekTransactions = db.getAllSync<Transaction>(
-      'SELECT * FROM transactions WHERE date >= ? AND date <= ? AND type = ? ORDER BY date',
-      lastWeekStart,
-      thisWeekEnd,
+    const weekTransactions = listTransactionsBetween(
+      { start: lastWeek.start, end: thisWeek.end },
       'expense',
     );
 
@@ -87,7 +76,7 @@ export default function StatisticsScreen() {
     const lastWeekMap: Record<string, number> = {};
 
     weekTransactions.forEach((t) => {
-      if (t.date >= thisWeekStart) {
+      if (t.date >= thisWeek.start) {
         thisWeekMap[t.category_name] = (thisWeekMap[t.category_name] || 0) + t.amount;
       } else {
         lastWeekMap[t.category_name] = (lastWeekMap[t.category_name] || 0) + t.amount;
@@ -132,7 +121,7 @@ export default function StatisticsScreen() {
   };
 
   const isCurrentMonth = currentMonth.isSame(dayjs(), 'month');
-  const weekAnchor = isCurrentMonth ? dayjs() : currentMonth.endOf('month');
+  const weekAnchor = weekComparisonAnchor(currentMonth);
   const [thisWeekLabel, lastWeekLabel] = isCurrentMonth ? ['本周', '上周'] : ['月末周', '前一周'];
 
   return (

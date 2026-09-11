@@ -16,7 +16,8 @@ import dayjs from 'dayjs';
 import { AmountInput } from '../../src/components/AmountInput';
 import { CategoryGrid } from '../../src/components/CategoryGrid';
 import { DatePickerModal } from '../../src/components/DatePickerModal';
-import { getDatabase } from '../../src/database';
+import { listCategoriesByType } from '../../src/database/categories';
+import { insertTransaction, updateTransaction } from '../../src/database/transactions';
 import { takeEditRequest } from '../../src/state/editRequest';
 import { useTheme } from '../../src/context/ThemeContext';
 import { showAlert } from '../../src/utils/alert';
@@ -33,14 +34,7 @@ export default function RecordScreen() {
   const [editingId, setEditingId] = useState<number | null>(null);
 
   // 分类随收支类型变化，本地库同步读取，直接在渲染时算，避免 effect 里同步 setState
-  const categories = useMemo(
-    () =>
-      getDatabase().getAllSync<Category>(
-        'SELECT * FROM categories WHERE type = ? ORDER BY sort_order',
-        recordType,
-      ),
-    [recordType],
-  );
+  const categories = useMemo(() => listCategoriesByType(recordType), [recordType]);
   // 选中的分类不在当前类型的列表里（如刚切换了类型）时，回退到第一个
   const currentCategory = categories.some((c) => c.name === selectedCategory)
     ? selectedCategory
@@ -95,22 +89,19 @@ export default function RecordScreen() {
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    const db = getDatabase();
     const now = dayjs().format('YYYY-MM-DD HH:mm:ss');
+    const input = {
+      type: recordType,
+      amount: numAmount,
+      category_name: currentCategory,
+      note: note.trim(),
+      date,
+    };
 
     if (editingId !== null) {
-      const result = db.runSync(
-        'UPDATE transactions SET type = ?, amount = ?, category_name = ?, note = ?, date = ?, updated_at = ? WHERE id = ?',
-        recordType,
-        numAmount,
-        currentCategory,
-        note.trim(),
-        date,
-        now,
-        editingId,
-      );
+      const changes = updateTransaction(editingId, input, now);
       resetForm();
-      if (result.changes === 0) {
+      if (changes === 0) {
         showAlert('保存失败', '这条记录已经被删除了');
         return;
       }
@@ -119,17 +110,7 @@ export default function RecordScreen() {
       return;
     }
 
-    db.runSync(
-      'INSERT INTO transactions (type, amount, category_name, note, date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      recordType,
-      numAmount,
-      currentCategory,
-      note.trim(),
-      date,
-      now,
-      now,
-    );
-
+    insertTransaction(input, now);
     resetForm();
 
     showAlert('保存成功', '', [

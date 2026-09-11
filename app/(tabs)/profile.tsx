@@ -18,13 +18,16 @@ import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
 import * as Haptics from 'expo-haptics';
-import { getDatabase } from '../../src/database';
 import { createBackup, parseBackup, restoreBackup } from '../../src/database/backup';
+import { getBudget, upsertBudget } from '../../src/database/budgets';
+import { listAllTransactions, sumExpenseBetween } from '../../src/database/transactions';
+import { THEME_MODE_KEY } from '../../src/database/settings';
 import { useTheme } from '../../src/context/ThemeContext';
 import { showAlert } from '../../src/utils/alert';
+import { monthRange } from '../../src/utils/dateRange';
 import { saveTextFile } from '../../src/utils/exportFile';
 import { UpdateModal } from '../../src/components/UpdateModal';
-import type { Transaction, Budget } from '../../src/types';
+import type { Budget } from '../../src/types';
 
 export default function ProfileScreen() {
   const { colors, toggleTheme, isDark, setTheme } = useTheme();
@@ -34,25 +37,12 @@ export default function ProfileScreen() {
   const currentMonth = dayjs().format('YYYY-MM');
 
   const loadData = useCallback(() => {
-    const db = getDatabase();
-
-    const budget = db.getFirstSync<Budget>(
-      'SELECT * FROM budgets WHERE month = ?',
-      currentMonth,
-    );
-    setSavedBudget(budget ?? null);
+    const budget = getBudget(currentMonth);
+    setSavedBudget(budget);
     if (budget) {
       setBudgetAmount(String(budget.amount));
     }
-
-    const monthStart = dayjs().startOf('month').format('YYYY-MM-DD');
-    const monthEnd = dayjs().endOf('month').format('YYYY-MM-DD');
-    const rows = db.getAllSync<{ total: number }>(
-      "SELECT COALESCE(SUM(amount), 0) as total FROM transactions WHERE type = 'expense' AND date >= ? AND date <= ?",
-      monthStart,
-      monthEnd,
-    );
-    setMonthExpense(rows[0]?.total ?? 0);
+    setMonthExpense(sumExpenseBetween(monthRange()));
   }, [currentMonth]);
 
   // 每次进入页面重新加载：应用跨月保持打开时预算也要跟着切到新月
@@ -70,17 +60,9 @@ export default function ProfileScreen() {
     }
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const db = getDatabase();
     const now = dayjs().format('YYYY-MM-DD HH:mm:ss');
 
-    db.runSync(
-      'INSERT OR REPLACE INTO budgets (month, amount, created_at, updated_at) VALUES (?, ?, COALESCE((SELECT created_at FROM budgets WHERE month = ?), ?), ?)',
-      currentMonth,
-      num,
-      currentMonth,
-      now,
-      now,
-    );
+    upsertBudget(currentMonth, num, now);
 
     setSavedBudget({ id: 0, month: currentMonth, amount: num, created_at: now, updated_at: now });
     showAlert('保存成功', `本月预算已设为 ¥${num.toFixed(2)}`);
@@ -88,10 +70,7 @@ export default function ProfileScreen() {
 
   const handleExportCSV = useCallback(async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const db = getDatabase();
-    const transactions = db.getAllSync<Transaction>(
-      'SELECT * FROM transactions ORDER BY date DESC, created_at DESC',
-    );
+    const transactions = listAllTransactions();
 
     if (transactions.length === 0) {
       showAlert('提示', '暂无数据可导出');
@@ -154,7 +133,7 @@ export default function ProfileScreen() {
             onPress: () => {
               try {
                 const count = restoreBackup(backup);
-                const theme = backup.settings.find((s) => s.key === 'theme_mode')?.value;
+                const theme = backup.settings.find((s) => s.key === THEME_MODE_KEY)?.value;
                 if (theme === 'light' || theme === 'dark') setTheme(theme);
                 loadData();
                 showAlert('恢复完成', `已恢复 ${count} 笔账单`);

@@ -13,10 +13,12 @@ app/                 expo-router 页面
   (tabs)/            首页(index) / 记账(record) / 统计(statistics) / 我的(profile)
 src/
   components/        金额键盘、分类格子、日期选择、饼图、滑动行、更新弹窗
-  database/          index.ts（打开库）、seed.ts（建表与预设分类）、backup.ts（备份/恢复）
+  database/          index.ts（打开库）、seed.ts（建表与预设分类）、
+                     transactions / categories / budgets / settings（数据访问层）、
+                     backup.ts（备份/恢复）、backupFormat.ts（备份文件解析校验，纯函数）
   context/           主题（持久化到 settings 表）
   state/             首页 → 记账页的"编辑请求"传递
-  utils/             showAlert（跨平台提示）、saveTextFile（分享/下载）
+  utils/             showAlert、saveTextFile、金额键盘规则、按天分组、日期区间、LIKE 转义（均配单元测试）
 scripts/
   web-preview.js     Web 预览代理（见下文）
   patch-expo-sqlite-web.js   postinstall 补丁（见下文）
@@ -28,6 +30,7 @@ scripts/
 ```bash
 npm install                 # 会自动执行 postinstall 补丁
 npm run typecheck           # tsc --noEmit
+npm test                    # 纯逻辑单元测试（jest-expo）
 npx expo start              # 手机装 Expo Go 扫码，或按提示打开
 ```
 

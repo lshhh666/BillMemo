@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { useColorScheme } from 'react-native';
 import { themes, type ThemeMode, type ThemeColors } from '../constants/colors';
-import { getDatabase } from '../database';
+import { getSetting, setSetting, THEME_MODE_KEY } from '../database/settings';
 
 interface ThemeContextValue {
   mode: ThemeMode;
@@ -13,17 +13,11 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-const THEME_KEY = 'theme_mode';
-
 function readPersistedMode(fallback: ThemeMode): ThemeMode {
   try {
-    const db = getDatabase();
-    const row = db.getFirstSync<{ value: string }>(
-      'SELECT value FROM settings WHERE key = ?',
-      THEME_KEY,
-    );
-    if (row?.value === 'light' || row?.value === 'dark') {
-      return row.value;
+    const value = getSetting(THEME_MODE_KEY);
+    if (value === 'light' || value === 'dark') {
+      return value;
     }
   } catch {}
   return fallback;
@@ -31,8 +25,7 @@ function readPersistedMode(fallback: ThemeMode): ThemeMode {
 
 function persistMode(mode: ThemeMode) {
   try {
-    const db = getDatabase();
-    db.runSync('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', THEME_KEY, mode);
+    setSetting(THEME_MODE_KEY, mode);
   } catch {}
 }
 

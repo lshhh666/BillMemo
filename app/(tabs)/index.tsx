@@ -15,35 +15,18 @@ import dayjs from 'dayjs';
 import { SummaryCard } from '../../src/components/SummaryCard';
 import { TransactionItem } from '../../src/components/TransactionItem';
 import { SwipeableRow } from '../../src/components/SwipeableRow';
-import { getDatabase } from '../../src/database';
+import { listCategories } from '../../src/database/categories';
+import {
+  deleteTransaction,
+  listTransactionsBetween,
+  searchTransactions,
+} from '../../src/database/transactions';
 import { requestEdit } from '../../src/state/editRequest';
 import { useTheme } from '../../src/context/ThemeContext';
 import { showAlert } from '../../src/utils/alert';
+import { monthRange } from '../../src/utils/dateRange';
+import { groupByDate, type DailyGroup } from '../../src/utils/grouping';
 import type { Transaction, Category, MonthlySummary } from '../../src/types';
-
-interface DailyGroup {
-  date: string;
-  dayLabel: string;
-  dayTotal: number;
-  transactions: Transaction[];
-}
-
-function groupByDate(transactions: Transaction[]): DailyGroup[] {
-  const grouped: Record<string, Transaction[]> = {};
-  transactions.forEach((t) => {
-    if (!grouped[t.date]) grouped[t.date] = [];
-    grouped[t.date].push(t);
-  });
-
-  return Object.entries(grouped)
-    .map(([date, items]) => ({
-      date,
-      dayLabel: dayjs(date).format('M月D日 dddd'),
-      dayTotal: items.reduce((sum, t) => sum + (t.type === 'expense' ? t.amount : -t.amount), 0),
-      transactions: items,
-    }))
-    .sort((a, b) => b.date.localeCompare(a.date));
-}
 
 export default function HomeScreen() {
   const { colors } = useTheme();
@@ -60,18 +43,9 @@ export default function HomeScreen() {
   const currentMonth = dayjs().format('YYYY年M月');
 
   const loadData = useCallback(() => {
-    const db = getDatabase();
-    const monthStart = dayjs().startOf('month').format('YYYY-MM-DD');
-    const monthEnd = dayjs().endOf('month').format('YYYY-MM-DD');
+    setCategories(listCategories());
 
-    const cats = db.getAllSync<Category>('SELECT * FROM categories ORDER BY sort_order');
-    setCategories(cats);
-
-    const transactions = db.getAllSync<Transaction>(
-      'SELECT * FROM transactions WHERE date >= ? AND date <= ? ORDER BY date DESC, created_at DESC',
-      monthStart,
-      monthEnd,
-    );
+    const transactions = listTransactionsBetween(monthRange());
 
     let totalExpense = 0;
     let totalIncome = 0;
@@ -99,8 +73,7 @@ export default function HomeScreen() {
           text: '删除',
           style: 'destructive',
           onPress: () => {
-            const db = getDatabase();
-            db.runSync('DELETE FROM transactions WHERE id = ?', transaction.id);
+            deleteTransaction(transaction.id);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             loadData();
           },
@@ -118,20 +91,11 @@ export default function HomeScreen() {
   // 搜索：直接查库，覆盖所有月份（列表本身只展示当月）。
   // 停顿 200ms 再查，避免每敲一个字都触发一次同步查询；是否使用结果由渲染时的关键词决定。
   useEffect(() => {
-    const keyword = searchText.trim().toLowerCase();
+    const keyword = searchText.trim();
     if (!keyword) return;
 
     const timer = setTimeout(() => {
-      const db = getDatabase();
-      // % 和 _ 在 LIKE 里是通配符，用户输入的要按字面匹配
-      const pattern = `%${keyword.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
-      const rows = db.getAllSync<Transaction>(
-        "SELECT * FROM transactions WHERE LOWER(note) LIKE ? ESCAPE '\\' OR LOWER(category_name) LIKE ? ESCAPE '\\' OR CAST(amount AS TEXT) LIKE ? ESCAPE '\\' ORDER BY date DESC, created_at DESC",
-        pattern,
-        pattern,
-        pattern,
-      );
-      setSearchResults(groupByDate(rows));
+      setSearchResults(groupByDate(searchTransactions(keyword)));
     }, 200);
 
     return () => clearTimeout(timer);

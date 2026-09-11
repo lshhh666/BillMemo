@@ -6,6 +6,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { applyAmountKey, BACKSPACE_KEY } from '../utils/amountInput';
 import { useTheme } from '../context/ThemeContext';
 
 interface Props {
@@ -18,7 +19,7 @@ const KEYS = [
   ['1', '2', '3'],
   ['4', '5', '6'],
   ['7', '8', '9'],
-  ['.', '0', '⌫'],
+  ['.', '0', BACKSPACE_KEY],
 ];
 
 export function AmountInput({ amount, onChange, type }: Props) {
@@ -29,30 +30,10 @@ export function AmountInput({ amount, onChange, type }: Props) {
     (key: string) => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      if (key === '⌫') {
-        onChange(amount.slice(0, -1) || '0');
-        return;
+      const next = applyAmountKey(amount, key);
+      if (next !== amount) {
+        onChange(next);
       }
-
-      let next = amount === '0' ? '' : amount;
-
-      if (key === '.') {
-        if (next.includes('.')) return;
-        if (next === '') next = '0';
-        onChange(next + '.');
-        return;
-      }
-
-      next += key;
-
-      // 限制小数点后两位
-      const dotIndex = next.indexOf('.');
-      if (dotIndex !== -1 && next.length - dotIndex > 3) return;
-
-      // 限制最大金额 999999999.99
-      if (parseFloat(next) > 999999999.99) return;
-
-      onChange(next);
     },
     [amount, onChange],
   );
@@ -78,10 +59,10 @@ export function AmountInput({ amount, onChange, type }: Props) {
                 key={key}
                 style={styles.key}
                 onPress={() => handlePress(key)}
-                onLongPress={key === '⌫' ? handleLongPress : undefined}
+                onLongPress={key === BACKSPACE_KEY ? handleLongPress : undefined}
                 activeOpacity={0.6}
               >
-                <Text style={[styles.keyText, { color: colors.textPrimary }, key === '⌫' && { color: colors.textHint, fontSize: 18 }]}>
+                <Text style={[styles.keyText, { color: colors.textPrimary }, key === BACKSPACE_KEY && { color: colors.textHint, fontSize: 18 }]}>
                   {key}
                 </Text>
               </TouchableOpacity>
