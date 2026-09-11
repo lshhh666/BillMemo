@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
@@ -55,17 +55,16 @@ export function AmountInput({ amount, onChange, type }: Props) {
         {KEYS.map((row, rowIndex) => (
           <View key={rowIndex} style={styles.row}>
             {row.map((key) => (
-              <TouchableOpacity
+              <Pressable
                 key={key}
-                style={styles.key}
+                style={({ pressed }) => [styles.key, pressed && { backgroundColor: colors.primaryLight }]}
                 onPress={() => handlePress(key)}
                 onLongPress={key === BACKSPACE_KEY ? handleLongPress : undefined}
-                activeOpacity={0.6}
               >
                 <Text style={[styles.keyText, { color: colors.textPrimary }, key === BACKSPACE_KEY && { color: colors.textHint, fontSize: 18 }]}>
                   {key}
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </View>
         ))}

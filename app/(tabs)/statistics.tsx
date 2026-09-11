@@ -320,6 +320,7 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 22,
     fontWeight: '700',
+    fontVariant: ['tabular-nums'],
   },
   card: {
     borderRadius: 16,
