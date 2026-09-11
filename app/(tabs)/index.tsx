@@ -184,7 +184,12 @@ export default function HomeScreen() {
               autoFocus
             />
             {searchText.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchText('')} style={styles.clearBtn}>
+              <TouchableOpacity
+                onPress={() => setSearchText('')}
+                style={styles.clearBtn}
+                accessibilityRole="button"
+                accessibilityLabel="清空搜索"
+              >
                 <Ionicons name="close-circle" size={18} color={colors.textHint} />
               </TouchableOpacity>
             )}
@@ -203,6 +208,8 @@ export default function HomeScreen() {
             <TouchableOpacity
               onPress={() => setIsSearching(true)}
               style={styles.searchIcon}
+              accessibilityRole="button"
+              accessibilityLabel="搜索"
             >
               <Ionicons name="search" size={22} color={colors.textPrimary} />
             </TouchableOpacity>

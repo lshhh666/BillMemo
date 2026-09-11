@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import dayjs from 'dayjs';
 import { PieChart, PIE_COLORS } from '../../src/components/PieChart';
-import { listTransactionsBetween } from '../../src/database/transactions';
+import { sumExpenseByCategoryBetween, sumTotalsBetween } from '../../src/database/transactions';
 import { useTheme } from '../../src/context/ThemeContext';
 import { monthRange, weekComparisonAnchor, weekRange } from '../../src/utils/dateRange';
 
@@ -38,50 +38,27 @@ export default function StatisticsScreen() {
   const [weekCompare, setWeekCompare] = useState<WeekCompareItem[]>([]);
 
   const loadData = useCallback(() => {
-    const transactions = listTransactionsBetween(monthRange(currentMonth));
+    const month = monthRange(currentMonth);
 
-    let expense = 0;
-    let income = 0;
-    const catMap: Record<string, number> = {};
+    const totals = sumTotalsBetween(month);
+    setTotalExpense(totals.expense);
+    setTotalIncome(totals.income);
 
-    transactions.forEach((t) => {
-      if (t.type === 'expense') {
-        expense += t.amount;
-        catMap[t.category_name] = (catMap[t.category_name] || 0) + t.amount;
-      } else {
-        income += t.amount;
-      }
-    });
-
-    setTotalExpense(expense);
-    setTotalIncome(income);
-
-    const cats: CategoryStat[] = Object.entries(catMap)
-      .map(([label, value]) => ({ label, value }))
+    const cats: CategoryStat[] = sumExpenseByCategoryBetween(month)
+      .map((row) => ({ label: row.category_name, value: row.total }))
       .sort((a, b) => b.value - a.value);
-
     setCategoryStats(cats);
 
     // 分类周趋势：查看当月时比较本周 vs 上周；查看历史月份时以该月最后一天所在的周为基准
     const anchor = weekComparisonAnchor(currentMonth);
-    const thisWeek = weekRange(anchor);
-    const lastWeek = weekRange(anchor.subtract(1, 'week'));
-
-    const weekTransactions = listTransactionsBetween(
-      { start: lastWeek.start, end: thisWeek.end },
-      'expense',
-    );
-
     const thisWeekMap: Record<string, number> = {};
     const lastWeekMap: Record<string, number> = {};
-
-    weekTransactions.forEach((t) => {
-      if (t.date >= thisWeek.start) {
-        thisWeekMap[t.category_name] = (thisWeekMap[t.category_name] || 0) + t.amount;
-      } else {
-        lastWeekMap[t.category_name] = (lastWeekMap[t.category_name] || 0) + t.amount;
-      }
-    });
+    sumExpenseByCategoryBetween(weekRange(anchor)).forEach(
+      (row) => (thisWeekMap[row.category_name] = row.total),
+    );
+    sumExpenseByCategoryBetween(weekRange(anchor.subtract(1, 'week'))).forEach(
+      (row) => (lastWeekMap[row.category_name] = row.total),
+    );
 
     const allCats = new Set([...Object.keys(thisWeekMap), ...Object.keys(lastWeekMap)]);
     const compare: WeekCompareItem[] = [];
@@ -132,7 +109,12 @@ export default function StatisticsScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* 月份切换 */}
         <View style={styles.monthRow}>
-          <TouchableOpacity onPress={prevMonth} style={styles.monthBtn}>
+          <TouchableOpacity
+            onPress={prevMonth}
+            style={styles.monthBtn}
+            accessibilityRole="button"
+            accessibilityLabel="上一个月"
+          >
             <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
           <Text style={[styles.monthText, { color: colors.textPrimary }]}>{currentMonth.format('YYYY年M月')}</Text>
@@ -140,6 +122,9 @@ export default function StatisticsScreen() {
             onPress={nextMonth}
             style={[styles.monthBtn, isCurrentMonth && styles.monthBtnDisabled]}
             disabled={isCurrentMonth}
+            accessibilityRole="button"
+            accessibilityLabel="下一个月"
+            accessibilityState={{ disabled: isCurrentMonth }}
           >
             <Ionicons
               name="chevron-forward"

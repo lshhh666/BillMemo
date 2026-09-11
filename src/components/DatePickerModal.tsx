@@ -87,6 +87,8 @@ export function DatePickerModal({ visible, value, onClose, onSelect }: Props) {
             <TouchableOpacity
               onPress={() => setMonth(month.subtract(1, 'month'))}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="上一个月"
             >
               <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
             </TouchableOpacity>
@@ -95,6 +97,9 @@ export function DatePickerModal({ visible, value, onClose, onSelect }: Props) {
               onPress={() => setMonth(month.add(1, 'month'))}
               disabled={isCurrentMonth}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="下一个月"
+              accessibilityState={{ disabled: isCurrentMonth }}
             >
               <Ionicons
                 name="chevron-forward"

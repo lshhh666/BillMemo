@@ -7,6 +7,7 @@ import { useUpdates, reloadAsync } from 'expo-updates';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
 import { ThemeProvider, useTheme } from '../src/context/ThemeContext';
+import { ErrorBoundary } from '../src/components/ErrorBoundary';
 import { warmUpDatabase } from '../src/database';
 import { showAlert } from '../src/utils/alert';
 
@@ -109,10 +110,12 @@ const styles = StyleSheet.create({
 
 export default function RootLayout() {
   return (
-    <DatabaseGate>
-      <ThemeProvider>
-        <RootLayoutInner />
-      </ThemeProvider>
-    </DatabaseGate>
+    <ErrorBoundary>
+      <DatabaseGate>
+        <ThemeProvider>
+          <RootLayoutInner />
+        </ThemeProvider>
+      </DatabaseGate>
+    </ErrorBoundary>
   );
 }

@@ -54,6 +54,29 @@ export function sumExpenseBetween(range: DateRange): number {
   return row?.total ?? 0;
 }
 
+export function sumTotalsBetween(range: DateRange): { expense: number; income: number } {
+  const row = getDatabase().getFirstSync<{ expense: number; income: number }>(
+    "SELECT COALESCE(SUM(CASE WHEN type = 'expense' THEN amount END), 0) AS expense, COALESCE(SUM(CASE WHEN type = 'income' THEN amount END), 0) AS income FROM transactions WHERE date >= ? AND date <= ?",
+    range.start,
+    range.end,
+  );
+  return row ?? { expense: 0, income: 0 };
+}
+
+export interface CategoryExpense {
+  category_name: string;
+  total: number;
+}
+
+/** 按分类汇总区间内支出；聚合在库里完成，耗时与记录数量基本无关 */
+export function sumExpenseByCategoryBetween(range: DateRange): CategoryExpense[] {
+  return getDatabase().getAllSync<CategoryExpense>(
+    "SELECT category_name, SUM(amount) AS total FROM transactions WHERE type = 'expense' AND date >= ? AND date <= ? GROUP BY category_name",
+    range.start,
+    range.end,
+  );
+}
+
 export function insertTransaction(input: TransactionInput, now: string): number {
   const result = getDatabase().runSync(
     'INSERT INTO transactions (type, amount, category_name, note, date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
