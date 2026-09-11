@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -23,13 +23,8 @@ const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日'];
 
 export function DatePickerModal({ visible, value, onClose, onSelect }: Props) {
   const { colors } = useTheme();
+  // 外层在每次打开时通过 key 重新挂载本组件，month 的初值即所选日期所在月
   const [month, setMonth] = useState(() => dayjs(value).startOf('month'));
-
-  useEffect(() => {
-    if (visible) {
-      setMonth(dayjs(value).startOf('month'));
-    }
-  }, [visible, value]);
 
   const today = dayjs().format('YYYY-MM-DD');
   const isCurrentMonth = month.isSame(dayjs(), 'month');

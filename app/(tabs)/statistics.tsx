@@ -75,7 +75,6 @@ export default function StatisticsScreen() {
     const thisWeekStart = anchor.startOf('week').format('YYYY-MM-DD');
     const thisWeekEnd = anchor.endOf('week').format('YYYY-MM-DD');
     const lastWeekStart = anchor.subtract(1, 'week').startOf('week').format('YYYY-MM-DD');
-    const lastWeekEnd = anchor.subtract(1, 'week').endOf('week').format('YYYY-MM-DD');
 
     const weekTransactions = db.getAllSync<Transaction>(
       'SELECT * FROM transactions WHERE date >= ? AND date <= ? AND type = ? ORDER BY date',

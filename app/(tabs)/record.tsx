@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -30,25 +30,23 @@ export default function RecordScreen() {
   const [note, setNote] = useState('');
   const [date, setDate] = useState(dayjs().format('YYYY-MM-DD'));
   const [datePickerVisible, setDatePickerVisible] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  const loadCategories = useCallback(() => {
-    const db = getDatabase();
-    const cats = db.getAllSync<Category>(
-      'SELECT * FROM categories WHERE type = ? ORDER BY sort_order',
-      recordType,
-    );
-    setCategories(cats);
-    const current = cats.find((c) => c.name === selectedCategory);
-    if (!current) {
-      setSelectedCategory(cats.length > 0 ? cats[0].name : null);
-    }
-  }, [recordType, selectedCategory]);
-
-  useEffect(() => {
-    loadCategories();
-  }, [loadCategories]);
+  // 分类随收支类型变化，本地库同步读取，直接在渲染时算，避免 effect 里同步 setState
+  const categories = useMemo(
+    () =>
+      getDatabase().getAllSync<Category>(
+        'SELECT * FROM categories WHERE type = ? ORDER BY sort_order',
+        recordType,
+      ),
+    [recordType],
+  );
+  // 选中的分类不在当前类型的列表里（如刚切换了类型）时，回退到第一个
+  const currentCategory = categories.some((c) => c.name === selectedCategory)
+    ? selectedCategory
+    : categories.length > 0
+      ? categories[0].name
+      : null;
 
   useFocusEffect(
     useCallback(() => {
@@ -90,7 +88,7 @@ export default function RecordScreen() {
       showAlert('提示', '请输入金额');
       return;
     }
-    if (!selectedCategory) {
+    if (!currentCategory) {
       showAlert('提示', '请选择分类');
       return;
     }
@@ -105,7 +103,7 @@ export default function RecordScreen() {
         'UPDATE transactions SET type = ?, amount = ?, category_name = ?, note = ?, date = ?, updated_at = ? WHERE id = ?',
         recordType,
         numAmount,
-        selectedCategory,
+        currentCategory,
         note.trim(),
         date,
         now,
@@ -125,7 +123,7 @@ export default function RecordScreen() {
       'INSERT INTO transactions (type, amount, category_name, note, date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
       recordType,
       numAmount,
-      selectedCategory,
+      currentCategory,
       note.trim(),
       date,
       now,
@@ -141,7 +139,7 @@ export default function RecordScreen() {
         onPress: () => router.replace('/'),
       },
     ]);
-  }, [amount, selectedCategory, note, date, recordType, editingId, resetForm]);
+  }, [amount, currentCategory, note, date, recordType, editingId, resetForm]);
 
   const accentColor = recordType === 'expense' ? colors.expense : colors.income;
 
@@ -215,7 +213,7 @@ export default function RecordScreen() {
           <View style={styles.section}>
             <CategoryGrid
               categories={categories}
-              selected={selectedCategory}
+              selected={currentCategory}
               onSelect={handleCategorySelect}
               type={recordType}
             />
@@ -263,7 +261,9 @@ export default function RecordScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
+      {/* 弹窗打开时通过 key 重新挂载，让月份视图从当前选中日期开始 */}
       <DatePickerModal
+        key={datePickerVisible ? 'picker-open' : 'picker-closed'}
         visible={datePickerVisible}
         value={date}
         onClose={() => setDatePickerVisible(false)}

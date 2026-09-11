@@ -36,6 +36,8 @@ export function seedDatabase(db: SQLiteDatabase) {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
   `);
 
   const existing = db.getFirstSync<{ cnt: number }>(

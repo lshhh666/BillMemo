@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -56,6 +56,7 @@ export default function HomeScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchText, setSearchText] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<DailyGroup[] | null>(null);
   const currentMonth = dayjs().format('YYYY年M月');
 
   const loadData = useCallback(() => {
@@ -114,24 +115,29 @@ export default function HomeScreen() {
     router.push('/record');
   }, []);
 
-  // 搜索：直接查库，覆盖所有月份（列表本身只展示当月）
-  const searchGroups = useMemo(() => {
+  // 搜索：直接查库，覆盖所有月份（列表本身只展示当月）。
+  // 停顿 200ms 再查，避免每敲一个字都触发一次同步查询；是否使用结果由渲染时的关键词决定。
+  useEffect(() => {
     const keyword = searchText.trim().toLowerCase();
-    if (!keyword) return null;
+    if (!keyword) return;
 
-    const db = getDatabase();
-    // % 和 _ 在 LIKE 里是通配符，用户输入的要按字面匹配
-    const pattern = `%${keyword.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
-    const rows = db.getAllSync<Transaction>(
-      "SELECT * FROM transactions WHERE LOWER(note) LIKE ? ESCAPE '\\' OR LOWER(category_name) LIKE ? ESCAPE '\\' OR CAST(amount AS TEXT) LIKE ? ESCAPE '\\' ORDER BY date DESC, created_at DESC",
-      pattern,
-      pattern,
-      pattern,
-    );
-    return groupByDate(rows);
+    const timer = setTimeout(() => {
+      const db = getDatabase();
+      // % 和 _ 在 LIKE 里是通配符，用户输入的要按字面匹配
+      const pattern = `%${keyword.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
+      const rows = db.getAllSync<Transaction>(
+        "SELECT * FROM transactions WHERE LOWER(note) LIKE ? ESCAPE '\\' OR LOWER(category_name) LIKE ? ESCAPE '\\' OR CAST(amount AS TEXT) LIKE ? ESCAPE '\\' ORDER BY date DESC, created_at DESC",
+        pattern,
+        pattern,
+        pattern,
+      );
+      setSearchResults(groupByDate(rows));
+    }, 200);
+
+    return () => clearTimeout(timer);
   }, [searchText, groups]);
 
-  const filteredGroups = searchGroups ?? groups;
+  const filteredGroups = searchText.trim() ? (searchResults ?? groups) : groups;
 
   // 搜索统计
   const searchStats = useMemo(() => {

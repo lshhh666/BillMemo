@@ -40,14 +40,17 @@ export function PieChart({ data, size = 200, innerRadius = 0.55 }: Props) {
   // 只有一个分类占 100% 时扇形起止点重合，SVG arc 会画成空，需单独用整圆绘制
   const isFullCircle = visible.length === 1;
 
-  let currentAngle = -Math.PI / 2;
+  const angles = visible.reduce<{ start: number; end: number }[]>((acc, d) => {
+    const start = acc.length > 0 ? acc[acc.length - 1].end : -Math.PI / 2;
+    const end = start + (d.value / total) * Math.PI * 2;
+    acc.push({ start, end });
+    return acc;
+  }, []);
 
   const slices = visible.map((d, i) => {
+    const { start: startAngle, end: endAngle } = angles[i];
     const percentage = d.value / total;
-    const angle = percentage * Math.PI * 2;
-    const startAngle = currentAngle;
-    const endAngle = currentAngle + angle;
-    currentAngle = endAngle;
+    const angle = endAngle - startAngle;
 
     const x1 = cx + radius * Math.cos(startAngle);
     const y1 = cy + radius * Math.sin(startAngle);

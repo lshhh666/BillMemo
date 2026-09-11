@@ -14,20 +14,13 @@ dayjs.locale('zh-cn');
 
 // Web 端要等数据库 worker 预热完成再渲染，否则首次同步查询会死锁超时；原生端直接放行
 function DatabaseGate({ children }: { children: ReactNode }) {
+  // SharedArrayBuffer 的可用性在页面生命周期内不会变化，直接在渲染期判断
+  const unsupported = Platform.OS === 'web' && typeof SharedArrayBuffer === 'undefined';
   const [ready, setReady] = useState(Platform.OS !== 'web');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (ready) return;
-    // 部分内嵌浏览器（如 Electron 套壳）不开放 SharedArrayBuffer，数据库无法同步调用，
-    // 直接给出可操作的提示，避免抛出一屏报错堆栈
-    if (typeof SharedArrayBuffer === 'undefined') {
-      const url = typeof window !== 'undefined' ? window.location.href : '';
-      setError(
-        `当前浏览器缺少运行所需的能力（SharedArrayBuffer）。\n\n请复制地址 ${url}，用 Chrome 或 Edge 打开。`,
-      );
-      return;
-    }
+    if (ready || unsupported) return;
     warmUpDatabase()
       .then(() => setReady(true))
       .catch((e) =>
@@ -35,8 +28,18 @@ function DatabaseGate({ children }: { children: ReactNode }) {
           `数据库初始化失败：${e?.message ?? String(e)}\n\n浏览器同一时间只允许一个标签页打开本应用，请关闭其他标签页后刷新。`,
         ),
       );
-  }, [ready]);
+  }, [ready, unsupported]);
 
+  if (unsupported) {
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <Text style={{ fontSize: 15, textAlign: 'center', lineHeight: 22 }}>
+          {`当前浏览器缺少运行所需的能力（SharedArrayBuffer）。\n\n请复制地址 ${url}，用 Chrome 或 Edge 打开。`}
+        </Text>
+      </View>
+    );
+  }
   if (error) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
