@@ -40,7 +40,8 @@
     "plugins": [
       "expo-updates",
       "expo-sqlite",
-      "expo-router"
+      "expo-router",
+      "expo-font"
     ],
     "extra": {
       "router": {},

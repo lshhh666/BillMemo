@@ -22,8 +22,9 @@ function DatabaseGate({ children }: { children: ReactNode }) {
     // 部分内嵌浏览器（如 Electron 套壳）不开放 SharedArrayBuffer，数据库无法同步调用，
     // 直接给出可操作的提示，避免抛出一屏报错堆栈
     if (typeof SharedArrayBuffer === 'undefined') {
+      const url = typeof window !== 'undefined' ? window.location.href : '';
       setError(
-        '当前浏览器缺少运行所需的能力（SharedArrayBuffer）。\n\n请复制地址 http://localhost:8082，用 Chrome 或 Edge 打开。',
+        `当前浏览器缺少运行所需的能力（SharedArrayBuffer）。\n\n请复制地址 ${url}，用 Chrome 或 Edge 打开。`,
       );
       return;
     }
