@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,8 @@ import dayjs from 'dayjs';
 import { SummaryCard } from '../../src/components/SummaryCard';
 import { TransactionItem } from '../../src/components/TransactionItem';
 import { SwipeableRow } from '../../src/components/SwipeableRow';
+import { AddRecordSheet } from '../../src/components/AddRecordSheet';
+import { Toast } from '../../src/components/Toast';
 import { listCategories } from '../../src/database/categories';
 import { getBudget } from '../../src/database/budgets';
 import {
@@ -23,6 +25,7 @@ import {
   searchTransactions,
 } from '../../src/database/transactions';
 import { requestEdit } from '../../src/state/editRequest';
+import { onOpenAddSheet } from '../../src/state/addSheet';
 import { useTheme } from '../../src/context/ThemeContext';
 import { showAlert } from '../../src/utils/alert';
 import { monthRange } from '../../src/utils/dateRange';
@@ -42,6 +45,25 @@ export default function HomeScreen() {
   const [searchText, setSearchText] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<DailyGroup[] | null>(null);
+  const [sheetVisible, setSheetVisible] = useState(false);
+  const [sheetSeq, setSheetSeq] = useState(0);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 每次打开都换 key 重挂载弹层，让它从编辑请求里重新初始化
+  const openSheet = useCallback(() => {
+    setSheetSeq((seq) => seq + 1);
+    setSheetVisible(true);
+  }, []);
+
+  // tab 栏中央 "+" 或其他入口请求打开记账弹层
+  useEffect(() => onOpenAddSheet(openSheet), [openSheet]);
+
+  const showToast = useCallback((message: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(message);
+    toastTimer.current = setTimeout(() => setToast(null), 2000);
+  }, []);
   const currentMonth = dayjs().format('YYYY年M月');
 
   const loadData = useCallback(() => {
@@ -86,10 +108,13 @@ export default function HomeScreen() {
     [loadData],
   );
 
-  const handleEdit = useCallback((transaction: Transaction) => {
-    requestEdit(transaction);
-    router.push('/record');
-  }, []);
+  const handleEdit = useCallback(
+    (transaction: Transaction) => {
+      requestEdit(transaction);
+      openSheet();
+    },
+    [openSheet],
+  );
 
   // 搜索：直接查库，覆盖所有月份（列表本身只展示当月）。
   // 停顿 200ms 再查，避免每敲一个字都触发一次同步查询；是否使用结果由渲染时的关键词决定。
@@ -245,7 +270,7 @@ export default function HomeScreen() {
             {!searchText && (
               <TouchableOpacity
                 style={[styles.emptyBtn, { backgroundColor: colors.primary }]}
-                onPress={() => router.push('/record')}
+                onPress={openSheet}
                 activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel="去记一笔"
@@ -256,6 +281,17 @@ export default function HomeScreen() {
           </View>
         }
       />
+
+      <AddRecordSheet
+        key={sheetSeq}
+        visible={sheetVisible}
+        onClose={() => setSheetVisible(false)}
+        onSaved={(message) => {
+          loadData();
+          showToast(message);
+        }}
+      />
+      <Toast message={toast} />
     </SafeAreaView>
   );
 }

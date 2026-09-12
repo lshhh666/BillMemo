@@ -19,35 +19,39 @@ export async function run(ctx, { appUrl }) {
   await ctx.shot('smoke-01-home-empty');
 
   console.log('   记一笔 88（今天）');
-  await ctx.clickText('记账');
+  await ctx.clickLabel('记一笔');
   await ctx.waitText('选择分类');
   await ctx.clickText('8');
   await ctx.clickText('8');
   await ctx.clickText('保存');
-  await ctx.clickText('首页');
+  await ctx.waitText('已记支出', 5000).catch(() => {}); // toast 稍纵即逝，能捕捉到最好
   const homeAfterFirst = await ctx.waitText('-88.00');
   expect(homeAfterFirst.includes(dayLabel(today)), `首页应显示中文星期的日期标签「${dayLabel(today)}」`);
 
   console.log('   通过日期选择器选「昨天」再记一笔');
-  await ctx.clickText('记账');
+  await ctx.clickLabel('记一笔');
   await ctx.waitText('选择分类');
-  const dateRow = await ctx.evalJs(`(() => {
-    const el = [...document.querySelectorAll('div')].find(e => e.childElementCount === 0 && /^\\d{4}-\\d{2}-\\d{2}/.test(e.textContent.trim()) && e.getBoundingClientRect().width > 0);
+  const dateChip = await ctx.evalJs(`(() => {
+    // 弹层日期芯片的完整文字是「9月13日（今天）」，全串匹配，避免撞上首页的「9月13日 星期日」
+    const el = [...document.querySelectorAll('div')].find(e => e.childElementCount === 0 && /^\\d{1,2}月\\d{1,2}日(（今天）)?$/.test(e.textContent.trim()) && e.getBoundingClientRect().width > 0);
     if (!el) return null; el.scrollIntoView({ block: 'center' });
-    const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    const r = el.getBoundingClientRect();
+    const x = r.x + r.width / 2, y = r.y + r.height / 2;
+    const hit = document.elementFromPoint(x, y);
+    if (!hit || (hit !== el && !el.contains(hit) && !hit.contains(el))) return null;
+    return { x, y };
   })()`);
-  expect(dateRow, '记账页应有日期行');
-  await ctx.clickAt(dateRow);
+  expect(dateChip, '弹层里应有日期行');
+  await ctx.clickAt(dateChip);
   await ctx.waitText('选择日期');
   await sleep(600);
   await ctx.shot('smoke-02-date-picker');
   await ctx.clickText('昨天');
   await sleep(400);
-  expect((await ctx.bodyText()).includes(yesterday.format('YYYY-MM-DD')), '选择「昨天」后日期行应显示昨天的日期');
+  expect((await ctx.bodyText()).includes(yesterday.format('M月D日')), '选择「昨天」后日期行应显示昨天的日期');
   await ctx.clickText('8');
   await ctx.clickText('8');
   await ctx.clickText('保存');
-  await ctx.clickText('首页');
   const homeAfterSecond = await ctx.waitText(dayLabel(yesterday));
   expect(homeAfterSecond.includes(dayLabel(today)), '首页应同时显示今天和昨天两组记录');
   await ctx.shot('smoke-03-home-two-days');
@@ -115,7 +119,7 @@ export async function run(ctx, { appUrl }) {
 
   console.log('   桌面宽度下键盘仍为 3 列且居中');
   await ctx.setViewport(1280, 800, false);
-  await ctx.clickText('记账');
+  await ctx.clickLabel('记一笔');
   await ctx.waitText('选择分类');
   await sleep(400);
   const keys = await ctx.evalJs(`[...document.querySelectorAll('div')]

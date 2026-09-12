@@ -208,6 +208,22 @@ export async function connect({ port, downloadDir, log = console.log }) {
     await sleep(500);
   };
 
+  // 点击带 aria-label 的元素（纯图标按钮，如 tab 栏中央的 "+"）
+  const clickLabel = async (label) => {
+    const point = await evalJs(`(() => {
+      const el = document.querySelector(${JSON.stringify(`[aria-label="${label}"]`)});
+      if (!el) return null;
+      el.scrollIntoView({ block: 'center' });
+      const r = el.getBoundingClientRect();
+      const x = r.x + r.width / 2, y = r.y + r.height / 2;
+      const hit = document.elementFromPoint(x, y);
+      if (hit && (hit === el || el.contains(hit) || hit.contains(el))) return { x, y };
+      return null;
+    })()`);
+    if (!point) throw new Error(`找不到带 aria-label 的元素：「${label}」`);
+    await clickAt(point);
+  };
+
   fs.mkdirSync(REPORT_DIR, { recursive: true });
   const shot = async (name) => {
     const result = await send('Page.captureScreenshot', { format: 'png' });
@@ -244,6 +260,7 @@ export async function connect({ port, downloadDir, log = console.log }) {
     clickAt,
     clickText,
     locateText,
+    clickLabel,
     clickSiblingOf,
     typeIntoInput,
     shot,

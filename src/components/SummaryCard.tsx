@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useCountUp } from '../hooks/useCountUp';
 import type { MonthlySummary, Budget } from '../types';
 
 interface Props {
@@ -13,6 +14,10 @@ interface Props {
 
 export function SummaryCard({ summary, month, budget, onBudgetPress }: Props) {
   const { colors } = useTheme();
+  // 记账后数字平滑滚到新值，而不是瞬间跳变
+  const expenseText = useCountUp(summary.totalExpense);
+  const incomeText = useCountUp(summary.totalIncome);
+  const balanceText = useCountUp(summary.balance);
   const budgetAmount = budget?.amount ?? 0;
   const remaining = budgetAmount - summary.totalExpense;
   const overBudget = budgetAmount > 0 && remaining < 0;
@@ -25,17 +30,17 @@ export function SummaryCard({ summary, month, budget, onBudgetPress }: Props) {
       <View style={styles.row}>
         <View style={styles.col}>
           <Text style={styles.label}>支出</Text>
-          <Text style={styles.value}>¥{summary.totalExpense.toFixed(2)}</Text>
+          <Text style={styles.value}>¥{expenseText}</Text>
         </View>
         <View style={styles.divider} />
         <View style={styles.col}>
           <Text style={styles.label}>收入</Text>
-          <Text style={styles.value}>¥{summary.totalIncome.toFixed(2)}</Text>
+          <Text style={styles.value}>¥{incomeText}</Text>
         </View>
       </View>
       <View style={styles.balanceRow}>
         <Text style={styles.balanceLabel}>本月结余</Text>
-        <Text style={styles.balanceValue}>¥{summary.balance.toFixed(2)}</Text>
+        <Text style={styles.balanceValue}>¥{balanceText}</Text>
       </View>
 
       <TouchableOpacity

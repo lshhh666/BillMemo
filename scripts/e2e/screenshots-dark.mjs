@@ -9,7 +9,7 @@ try {
   await ctx.navigate(appUrl);
   await ctx.waitText('还没有账单记录', 120000);
 
-  await ctx.clickText('记账');
+  await ctx.clickLabel('记一笔');
   await ctx.waitText('选择分类');
   await ctx.clickText('8');
   await ctx.clickText('8');
