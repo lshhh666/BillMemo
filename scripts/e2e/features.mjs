@@ -73,6 +73,7 @@ export async function run(ctx, { appUrl, downloadDir }) {
   );
 
   console.log('   再记一笔 66 制造差异，然后从备份恢复');
+  await ctx.clickText('首页'); // "+" 在首页上，先从"我的"页回来
   await ctx.clickLabel('记一笔');
   await ctx.waitText('选择分类');
   await ctx.clickText('6');

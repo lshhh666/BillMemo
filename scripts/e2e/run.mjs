@@ -6,7 +6,6 @@ import * as smoke from './smoke.mjs';
 import * as features from './features.mjs';
 
 const appUrl = process.env.E2E_APP_URL ?? 'http://localhost:8082/';
-const port = Number(process.env.E2E_CDP_PORT ?? 9333);
 const downloadDir = path.join(REPORT_DIR, 'downloads');
 
 try {
@@ -31,15 +30,18 @@ if (picked.length === 0) {
 let failed = 0;
 for (const [key, suite] of picked) {
   console.log(`\n=== ${suite.name} ===`);
-  const chrome = await launchChrome({ port });
+  const chrome = await launchChrome();
   let ctx;
   try {
-    ctx = await connect({ port, downloadDir });
+    ctx = await connect({ port: chrome.port, downloadDir });
     await suite.run(ctx, { appUrl, downloadDir });
     console.log(`✓ ${suite.name} 通过`);
   } catch (e) {
     failed++;
     console.error(`✗ ${suite.name} 失败：${e.message}`);
+    try {
+      console.error(`   失败时页面：${(await ctx.bodyText()).slice(0, 200).replace(/\n+/g, ' | ')}`);
+    } catch {}
     try {
       await ctx?.shot(`FAILED-${key}`);
     } catch {}

@@ -2,8 +2,8 @@
 import { launchChrome, killChrome, connect, sleep } from './lib.mjs';
 
 const appUrl = process.env.E2E_APP_URL ?? 'http://localhost:8082/';
-const chrome = await launchChrome({ port: 9333 });
-const ctx = await connect({ port: 9333 });
+const chrome = await launchChrome();
+const ctx = await connect({ port: chrome.port });
 try {
   await ctx.setViewport(420, 900);
   await ctx.navigate(appUrl);

@@ -119,6 +119,7 @@ export async function run(ctx, { appUrl }) {
 
   console.log('   桌面宽度下键盘仍为 3 列且居中');
   await ctx.setViewport(1280, 800, false);
+  await ctx.clickText('首页'); // "+" 在首页上，非活动 tab 的内容不在 DOM 里，先回首页
   await ctx.clickLabel('记一笔');
   await ctx.waitText('选择分类');
   await sleep(400);
