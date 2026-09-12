@@ -1,15 +1,23 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-import type { MonthlySummary } from '../types';
+import type { MonthlySummary, Budget } from '../types';
 
 interface Props {
   summary: MonthlySummary;
   month: string;
+  budget?: Budget | null;
+  onBudgetPress?: () => void;
 }
 
-export function SummaryCard({ summary, month }: Props) {
+export function SummaryCard({ summary, month, budget, onBudgetPress }: Props) {
   const { colors } = useTheme();
+  const budgetAmount = budget?.amount ?? 0;
+  const remaining = budgetAmount - summary.totalExpense;
+  const overBudget = budgetAmount > 0 && remaining < 0;
+  const usagePct =
+    budgetAmount > 0 ? Math.min((summary.totalExpense / budgetAmount) * 100, 100) : 0;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.primary }]}>
@@ -17,24 +25,56 @@ export function SummaryCard({ summary, month }: Props) {
       <View style={styles.row}>
         <View style={styles.col}>
           <Text style={styles.label}>支出</Text>
-          <Text style={styles.value}>
-            ¥{summary.totalExpense.toFixed(2)}
-          </Text>
+          <Text style={styles.value}>¥{summary.totalExpense.toFixed(2)}</Text>
         </View>
-        <View style={[styles.divider, { backgroundColor: 'rgba(255,255,255,0.3)' }]} />
+        <View style={styles.divider} />
         <View style={styles.col}>
           <Text style={styles.label}>收入</Text>
-          <Text style={styles.value}>
-            ¥{summary.totalIncome.toFixed(2)}
-          </Text>
+          <Text style={styles.value}>¥{summary.totalIncome.toFixed(2)}</Text>
         </View>
       </View>
-      <View style={[styles.balanceRow, { borderTopColor: 'rgba(255,255,255,0.2)' }]}>
+      <View style={styles.balanceRow}>
         <Text style={styles.balanceLabel}>本月结余</Text>
-        <Text style={styles.balanceValue}>
-          ¥{summary.balance.toFixed(2)}
-        </Text>
+        <Text style={styles.balanceValue}>¥{summary.balance.toFixed(2)}</Text>
       </View>
+
+      <TouchableOpacity
+        style={styles.budgetRow}
+        onPress={onBudgetPress}
+        activeOpacity={onBudgetPress ? 0.7 : 1}
+        disabled={!onBudgetPress}
+      >
+        {budgetAmount > 0 ? (
+          <View>
+            <View style={styles.budgetHeader}>
+              <Text style={styles.budgetLabel}>本月剩余</Text>
+              <Text
+                style={[styles.budgetRemaining, overBudget && { color: '#FFE08A' }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+              >
+                {overBudget
+                  ? `已超支 ¥${Math.abs(remaining).toFixed(2)}`
+                  : `¥${remaining.toFixed(2)}`}
+              </Text>
+            </View>
+            <View style={styles.budgetTrack}>
+              <View
+                style={[
+                  styles.budgetFill,
+                  { width: `${usagePct}%`, backgroundColor: overBudget ? '#FFE08A' : '#FFFFFF' },
+                ]}
+              />
+            </View>
+          </View>
+        ) : (
+          <View style={styles.budgetEmpty}>
+            <Text style={styles.budgetEmptyText}>未设置月度预算</Text>
+            <Text style={styles.budgetEmptyAction}>去设置</Text>
+            <Ionicons name="chevron-forward" size={14} color="rgba(255,255,255,0.8)" />
+          </View>
+        )}
+      </TouchableOpacity>
     </View>
   );
 }
@@ -67,18 +107,21 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: '#FFFFFF',
+    fontVariant: ['tabular-nums'],
   },
   divider: {
     width: StyleSheet.hairlineWidth,
     height: 36,
+    backgroundColor: 'rgba(255,255,255,0.3)',
   },
   balanceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 14,
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.2)',
   },
   balanceLabel: {
     fontSize: 13,
@@ -87,6 +130,54 @@ const styles = StyleSheet.create({
   balanceValue: {
     fontSize: 18,
     fontWeight: '700',
+    color: '#FFFFFF',
+    fontVariant: ['tabular-nums'],
+  },
+  budgetRow: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(255,255,255,0.2)',
+  },
+  budgetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 8,
+  },
+  budgetLabel: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  budgetRemaining: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    fontVariant: ['tabular-nums'],
+  },
+  budgetTrack: {
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    overflow: 'hidden',
+  },
+  budgetFill: {
+    height: 5,
+    borderRadius: 2.5,
+  },
+  budgetEmpty: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  budgetEmptyText: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  budgetEmptyAction: {
+    fontSize: 13,
+    fontWeight: '600',
     color: '#FFFFFF',
   },
 });

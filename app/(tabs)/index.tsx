@@ -16,6 +16,7 @@ import { SummaryCard } from '../../src/components/SummaryCard';
 import { TransactionItem } from '../../src/components/TransactionItem';
 import { SwipeableRow } from '../../src/components/SwipeableRow';
 import { listCategories } from '../../src/database/categories';
+import { getBudget } from '../../src/database/budgets';
 import {
   deleteTransaction,
   listTransactionsBetween,
@@ -26,7 +27,7 @@ import { useTheme } from '../../src/context/ThemeContext';
 import { showAlert } from '../../src/utils/alert';
 import { monthRange } from '../../src/utils/dateRange';
 import { groupByDate, type DailyGroup } from '../../src/utils/grouping';
-import type { Transaction, Category, MonthlySummary } from '../../src/types';
+import type { Transaction, Category, MonthlySummary, Budget } from '../../src/types';
 
 export default function HomeScreen() {
   const { colors } = useTheme();
@@ -37,6 +38,7 @@ export default function HomeScreen() {
     balance: 0,
   });
   const [categories, setCategories] = useState<Category[]>([]);
+  const [budget, setBudget] = useState<Budget | null>(null);
   const [searchText, setSearchText] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<DailyGroup[] | null>(null);
@@ -44,6 +46,7 @@ export default function HomeScreen() {
 
   const loadData = useCallback(() => {
     setCategories(listCategories());
+    setBudget(getBudget(dayjs().format('YYYY-MM')));
 
     const transactions = listTransactionsBetween(monthRange());
 
@@ -122,7 +125,12 @@ export default function HomeScreen() {
   const renderHeader = useCallback(
     () => (
       <>
-        <SummaryCard summary={summary} month={currentMonth} />
+        <SummaryCard
+          summary={summary}
+          month={currentMonth}
+          budget={budget}
+          onBudgetPress={() => router.push('/profile')}
+        />
         {searchStats && (
           <View style={[styles.searchStats, { backgroundColor: colors.surface }]}>
             <View style={styles.statItem}>
@@ -138,7 +146,7 @@ export default function HomeScreen() {
         )}
       </>
     ),
-    [summary, currentMonth, searchStats, colors],
+    [summary, currentMonth, budget, searchStats, colors],
   );
 
   const renderItem = useCallback(
@@ -224,12 +232,26 @@ export default function HomeScreen() {
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>{searchText ? '🔍' : '📝'}</Text>
+            <View style={[styles.emptyIconWrap, { backgroundColor: colors.primaryLight }]}>
+              <Ionicons
+                name={searchText ? 'search' : 'receipt-outline'}
+                size={28}
+                color={colors.primary}
+              />
+            </View>
             <Text style={[styles.emptyText, { color: colors.textHint }]}>
               {searchText ? '没有找到匹配的记录' : '还没有账单记录'}
             </Text>
             {!searchText && (
-              <Text style={[styles.emptyHint, { color: colors.textPlaceholder }]}>点击底部「记账」开始记录</Text>
+              <TouchableOpacity
+                style={[styles.emptyBtn, { backgroundColor: colors.primary }]}
+                onPress={() => router.push('/record')}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="去记一笔"
+              >
+                <Text style={styles.emptyBtnText}>去记一笔</Text>
+              </TouchableOpacity>
             )}
           </View>
         }
@@ -323,15 +345,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 80,
   },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 12,
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: 15,
     marginBottom: 4,
   },
-  emptyHint: {
-    fontSize: 13,
+  emptyBtn: {
+    marginTop: 16,
+    paddingHorizontal: 28,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  emptyBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

@@ -448,6 +448,7 @@ const styles = StyleSheet.create({
   budgetValue: {
     fontSize: 15,
     fontWeight: '600',
+    fontVariant: ['tabular-nums'],
   },
   progressBar: {
     height: 6,
