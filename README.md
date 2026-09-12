@@ -1,5 +1,11 @@
 # PureCash（BillMemo）
 
+<p>
+  <img src="docs/screenshots/home-light.png" width="260" alt="首页（浅色，含预算余量）" />
+  <img src="docs/screenshots/home-dark.png" width="260" alt="首页（深色，超支状态）" />
+  <img src="docs/screenshots/statistics.png" width="260" alt="统计页" />
+</p>
+
 极简的个人记账应用：记一笔、按月看账单、分类统计、月度预算、深色模式，数据完全存在本地。
 
 - 技术栈：Expo SDK 54 · React Native 0.81 · expo-router · expo-sqlite · TypeScript
