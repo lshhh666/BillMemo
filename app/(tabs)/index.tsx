@@ -25,7 +25,6 @@ import {
   searchTransactions,
 } from '../../src/database/transactions';
 import { requestEdit } from '../../src/state/editRequest';
-import { onOpenAddSheet } from '../../src/state/addSheet';
 import { useTheme } from '../../src/context/ThemeContext';
 import { showAlert } from '../../src/utils/alert';
 import { monthRange } from '../../src/utils/dateRange';
@@ -55,9 +54,6 @@ export default function HomeScreen() {
     setSheetSeq((seq) => seq + 1);
     setSheetVisible(true);
   }, []);
-
-  // tab 栏中央 "+" 或其他入口请求打开记账弹层
-  useEffect(() => onOpenAddSheet(openSheet), [openSheet]);
 
   const showToast = useCallback((message: string) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -282,6 +278,17 @@ export default function HomeScreen() {
         }
       />
 
+      {/* 右下角悬浮的记账按钮 */}
+      <TouchableOpacity
+        style={[styles.fab, { backgroundColor: colors.primary }]}
+        onPress={openSheet}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="记一笔"
+      >
+        <Ionicons name="add" size={30} color="#FFFFFF" />
+      </TouchableOpacity>
+
       <AddRecordSheet
         key={sheetSeq}
         visible={sheetVisible}
@@ -403,5 +410,20 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 76,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#07C160',
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
 });
