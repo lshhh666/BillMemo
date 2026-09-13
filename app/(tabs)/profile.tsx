@@ -382,8 +382,7 @@ export default function ProfileScreen() {
           </View>
           <View style={[styles.aboutContent, { borderTopColor: colors.border }]}>
             <Text style={[styles.aboutText, { color: colors.textHint }]}>
-              PureCash 是一款极简的个人记账应用，帮助你轻松管理日常收支。{'\n\n'}
-              数据完全存储在本地，无需注册账号，保护你的隐私安全。
+              记账、看账、管预算。{'\n'}数据只存在这台手机上，不注册，不联网。
             </Text>
           </View>
         </View>

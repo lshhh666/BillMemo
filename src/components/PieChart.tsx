@@ -124,8 +124,8 @@ export function PieChart({ data, size = 200, innerRadius = 0.55 }: Props) {
           x={cx}
           y={cy + 16}
           fill={colors.textHint}
-          fontSize={22}
-          fontWeight="800"
+          fontSize={20}
+          fontWeight="700"
           textAnchor="middle"
           alignmentBaseline="central"
         >

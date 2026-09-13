@@ -32,13 +32,12 @@ export function SummaryCard({ summary, month, budget, onBudgetPress }: Props) {
         !isDark && styles.containerShadow,
       ]}
     >
-      <Text style={styles.month}>{month} · 本月支出</Text>
+      <Text style={styles.month}>{month}支出</Text>
       <Text style={styles.expenseValue} adjustsFontSizeToFit numberOfLines={1}>
         ¥{expenseText}
       </Text>
       <View style={styles.secondaryRow}>
         <Text style={styles.secondaryText}>收入 ¥{incomeText}</Text>
-        <Text style={styles.secondaryDivider}>·</Text>
         <Text style={styles.secondaryText}>结余 ¥{balanceText}</Text>
       </View>
 
@@ -86,16 +85,16 @@ export function SummaryCard({ summary, month, budget, onBudgetPress }: Props) {
 const styles = StyleSheet.create({
   container: {
     margin: 16,
-    borderRadius: 20,
-    paddingHorizontal: 22,
-    paddingVertical: 20,
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
   },
   containerShadow: {
-    shadowColor: '#07C160',
-    shadowOpacity: 0.25,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    shadowColor: '#000000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   month: {
     fontSize: 13,
@@ -103,26 +102,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   expenseValue: {
-    fontSize: 36,
-    fontWeight: '800',
+    fontSize: 30,
+    fontWeight: '700',
     color: '#FFFFFF',
     fontVariant: ['tabular-nums'],
-    letterSpacing: -0.5,
   },
   secondaryRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
     marginTop: 8,
   },
   secondaryText: {
     fontSize: 13,
     color: 'rgba(255,255,255,0.85)',
     fontVariant: ['tabular-nums'],
-  },
-  secondaryDivider: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.45)',
   },
   budgetRow: {
     marginTop: 16,
