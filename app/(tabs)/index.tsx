@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,8 @@ import dayjs from 'dayjs';
 import { SummaryCard } from '../../src/components/SummaryCard';
 import { TransactionItem } from '../../src/components/TransactionItem';
 import { SwipeableRow } from '../../src/components/SwipeableRow';
+import { AddRecordSheet } from '../../src/components/AddRecordSheet';
+import { Toast } from '../../src/components/Toast';
 import { listCategories } from '../../src/database/categories';
 import { getBudget } from '../../src/database/budgets';
 import {
@@ -24,13 +26,14 @@ import {
 } from '../../src/database/transactions';
 import { requestEdit } from '../../src/state/editRequest';
 import { useTheme } from '../../src/context/ThemeContext';
+import { cardShadow } from '../../src/constants/shadows';
 import { showAlert } from '../../src/utils/alert';
 import { monthRange } from '../../src/utils/dateRange';
 import { groupByDate, type DailyGroup } from '../../src/utils/grouping';
 import type { Transaction, Category, MonthlySummary, Budget } from '../../src/types';
 
 export default function HomeScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [groups, setGroups] = useState<DailyGroup[]>([]);
   const [summary, setSummary] = useState<MonthlySummary>({
     totalExpense: 0,
@@ -42,6 +45,22 @@ export default function HomeScreen() {
   const [searchText, setSearchText] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<DailyGroup[] | null>(null);
+  const [sheetVisible, setSheetVisible] = useState(false);
+  const [sheetSeq, setSheetSeq] = useState(0);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 每次打开都换 key 重挂载弹层，让它从编辑请求里重新初始化
+  const openSheet = useCallback(() => {
+    setSheetSeq((seq) => seq + 1);
+    setSheetVisible(true);
+  }, []);
+
+  const showToast = useCallback((message: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(message);
+    toastTimer.current = setTimeout(() => setToast(null), 2000);
+  }, []);
   const currentMonth = dayjs().format('YYYY年M月');
 
   const loadData = useCallback(() => {
@@ -86,10 +105,13 @@ export default function HomeScreen() {
     [loadData],
   );
 
-  const handleEdit = useCallback((transaction: Transaction) => {
-    requestEdit(transaction);
-    router.push('/record');
-  }, []);
+  const handleEdit = useCallback(
+    (transaction: Transaction) => {
+      requestEdit(transaction);
+      openSheet();
+    },
+    [openSheet],
+  );
 
   // 搜索：直接查库，覆盖所有月份（列表本身只展示当月）。
   // 停顿 200ms 再查，避免每敲一个字都触发一次同步查询；是否使用结果由渲染时的关键词决定。
@@ -132,7 +154,7 @@ export default function HomeScreen() {
           onBudgetPress={() => router.push('/profile')}
         />
         {searchStats && (
-          <View style={[styles.searchStats, { backgroundColor: colors.surface }]}>
+          <View style={[styles.searchStats, { backgroundColor: colors.surface }, !isDark && cardShadow]}>
             <View style={styles.statItem}>
               <Text style={[styles.statLabel, { color: colors.textHint }]}>找到记录</Text>
               <Text style={[styles.statValue, { color: colors.textPrimary }]}>{searchStats.count} 笔</Text>
@@ -146,7 +168,7 @@ export default function HomeScreen() {
         )}
       </>
     ),
-    [summary, currentMonth, budget, searchStats, colors],
+    [summary, currentMonth, budget, searchStats, colors, isDark],
   );
 
   const renderItem = useCallback(
@@ -154,10 +176,11 @@ export default function HomeScreen() {
       <View>
         <View style={[styles.dateHeader, { backgroundColor: colors.background }]}>
           <Text style={[styles.dateText, { color: colors.textHint }]}>{item.dayLabel}</Text>
-          <Text style={[styles.dateAmount, { color: colors.textHint }]}>
-            {item.dayTotal >= 0 ? '结余' : '支出'} ¥
-            {Math.abs(item.dayTotal).toFixed(2)}
-          </Text>
+          <View style={[styles.dayPill, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.dayPillText, { color: colors.textHint }]}>
+              {item.dayTotal >= 0 ? '结余' : '支出'} ¥{Math.abs(item.dayTotal).toFixed(2)}
+            </Text>
+          </View>
         </View>
         {item.transactions.map((t) => (
           <SwipeableRow
@@ -245,7 +268,7 @@ export default function HomeScreen() {
             {!searchText && (
               <TouchableOpacity
                 style={[styles.emptyBtn, { backgroundColor: colors.primary }]}
-                onPress={() => router.push('/record')}
+                onPress={openSheet}
                 activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel="去记一笔"
@@ -256,6 +279,28 @@ export default function HomeScreen() {
           </View>
         }
       />
+
+      {/* 右下角悬浮的记账按钮 */}
+      <TouchableOpacity
+        style={[styles.fab, { backgroundColor: colors.primary }]}
+        onPress={openSheet}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="记一笔"
+      >
+        <Ionicons name="add" size={30} color="#FFFFFF" />
+      </TouchableOpacity>
+
+      <AddRecordSheet
+        key={sheetSeq}
+        visible={sheetVisible}
+        onClose={() => setSheetVisible(false)}
+        onSaved={(message) => {
+          loadData();
+          showToast(message);
+        }}
+      />
+      <Toast message={toast} />
     </SafeAreaView>
   );
 }
@@ -338,8 +383,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
   },
-  dateAmount: {
-    fontSize: 13,
+  dayPill: {
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  dayPillText: {
+    fontSize: 12,
+    fontVariant: ['tabular-nums'],
   },
   empty: {
     alignItems: 'center',
@@ -367,5 +418,20 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 76,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 5,
   },
 });

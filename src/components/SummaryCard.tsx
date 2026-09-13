@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import { useCountUp } from '../hooks/useCountUp';
 import type { MonthlySummary, Budget } from '../types';
 
 interface Props {
@@ -12,7 +13,11 @@ interface Props {
 }
 
 export function SummaryCard({ summary, month, budget, onBudgetPress }: Props) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  // 记账后数字平滑滚到新值，而不是瞬间跳变
+  const expenseText = useCountUp(summary.totalExpense);
+  const incomeText = useCountUp(summary.totalIncome);
+  const balanceText = useCountUp(summary.balance);
   const budgetAmount = budget?.amount ?? 0;
   const remaining = budgetAmount - summary.totalExpense;
   const overBudget = budgetAmount > 0 && remaining < 0;
@@ -20,22 +25,20 @@ export function SummaryCard({ summary, month, budget, onBudgetPress }: Props) {
     budgetAmount > 0 ? Math.min((summary.totalExpense / budgetAmount) * 100, 100) : 0;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.primary }]}>
-      <Text style={styles.month}>{month}</Text>
-      <View style={styles.row}>
-        <View style={styles.col}>
-          <Text style={styles.label}>支出</Text>
-          <Text style={styles.value}>¥{summary.totalExpense.toFixed(2)}</Text>
-        </View>
-        <View style={styles.divider} />
-        <View style={styles.col}>
-          <Text style={styles.label}>收入</Text>
-          <Text style={styles.value}>¥{summary.totalIncome.toFixed(2)}</Text>
-        </View>
-      </View>
-      <View style={styles.balanceRow}>
-        <Text style={styles.balanceLabel}>本月结余</Text>
-        <Text style={styles.balanceValue}>¥{summary.balance.toFixed(2)}</Text>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: colors.primary },
+        !isDark && styles.containerShadow,
+      ]}
+    >
+      <Text style={styles.month}>{month}支出</Text>
+      <Text style={styles.expenseValue} adjustsFontSizeToFit numberOfLines={1}>
+        ¥{expenseText}
+      </Text>
+      <View style={styles.secondaryRow}>
+        <Text style={styles.secondaryText}>收入 ¥{incomeText}</Text>
+        <Text style={styles.secondaryText}>结余 ¥{balanceText}</Text>
       </View>
 
       <TouchableOpacity
@@ -83,59 +86,41 @@ const styles = StyleSheet.create({
   container: {
     margin: 16,
     borderRadius: 16,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+  },
+  containerShadow: {
+    shadowColor: '#000000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   month: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 16,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  col: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  label: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
-    marginBottom: 4,
+    color: 'rgba(255,255,255,0.75)',
+    marginBottom: 8,
   },
-  value: {
-    fontSize: 24,
+  expenseValue: {
+    fontSize: 30,
     fontWeight: '700',
     color: '#FFFFFF',
     fontVariant: ['tabular-nums'],
   },
-  divider: {
-    width: StyleSheet.hairlineWidth,
-    height: 36,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  balanceRow: {
+  secondaryRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 14,
-    paddingTop: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'space-between',
+    marginTop: 8,
   },
-  balanceLabel: {
+  secondaryText: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  balanceValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    color: 'rgba(255,255,255,0.85)',
     fontVariant: ['tabular-nums'],
   },
   budgetRow: {
-    marginTop: 14,
-    paddingTop: 12,
+    marginTop: 16,
+    paddingTop: 14,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(255,255,255,0.2)',
   },

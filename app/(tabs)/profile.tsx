@@ -23,6 +23,7 @@ import { getBudget, upsertBudget } from '../../src/database/budgets';
 import { listAllTransactions, sumExpenseBetween } from '../../src/database/transactions';
 import { THEME_MODE_KEY } from '../../src/database/settings';
 import { useTheme } from '../../src/context/ThemeContext';
+import { cardShadow } from '../../src/constants/shadows';
 import { showAlert } from '../../src/utils/alert';
 import { monthRange } from '../../src/utils/dateRange';
 import { saveTextFile } from '../../src/utils/exportFile';
@@ -233,7 +234,7 @@ export default function ProfileScreen() {
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* 主题切换 */}
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+        <View style={[styles.card, { backgroundColor: colors.surface }, !isDark && cardShadow]}>
           <TouchableOpacity style={styles.menuItem} onPress={toggleTheme} activeOpacity={0.6}>
             <View style={styles.menuLeft}>
               <Ionicons name={isDark ? 'sunny-outline' : 'moon-outline'} size={20} color={colors.textSecondary} />
@@ -246,7 +247,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* 预算设置 */}
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+        <View style={[styles.card, { backgroundColor: colors.surface }, !isDark && cardShadow]}>
           <View style={styles.cardHeader}>
             <Ionicons name="wallet-outline" size={20} color={colors.primary} />
             <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>月度预算</Text>
@@ -312,7 +313,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* 数据管理 */}
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+        <View style={[styles.card, { backgroundColor: colors.surface }, !isDark && cardShadow]}>
           <TouchableOpacity style={styles.menuItem} onPress={handleExportCSV} activeOpacity={0.6}>
             <View style={styles.menuLeft}>
               <Ionicons name="download-outline" size={20} color={colors.textSecondary} />
@@ -345,7 +346,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* 检查更新 */}
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+        <View style={[styles.card, { backgroundColor: colors.surface }, !isDark && cardShadow]}>
           <TouchableOpacity
             style={styles.menuItem}
             onPress={handleCheckUpdate}
@@ -372,7 +373,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* 关于 */}
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+        <View style={[styles.card, { backgroundColor: colors.surface }, !isDark && cardShadow]}>
           <View style={styles.menuItem}>
             <View style={styles.menuLeft}>
               <Ionicons name="information-circle-outline" size={20} color={colors.textSecondary} />
@@ -381,8 +382,7 @@ export default function ProfileScreen() {
           </View>
           <View style={[styles.aboutContent, { borderTopColor: colors.border }]}>
             <Text style={[styles.aboutText, { color: colors.textHint }]}>
-              PureCash 是一款极简的个人记账应用，帮助你轻松管理日常收支。{'\n\n'}
-              数据完全存储在本地，无需注册账号，保护你的隐私安全。
+              记账、看账、管预算。{'\n'}数据只存在这台手机上，不注册，不联网。
             </Text>
           </View>
         </View>

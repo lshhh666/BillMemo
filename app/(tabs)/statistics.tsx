@@ -14,6 +14,7 @@ import dayjs from 'dayjs';
 import { PieChart, PIE_COLORS } from '../../src/components/PieChart';
 import { sumExpenseByCategoryBetween, sumTotalsBetween } from '../../src/database/transactions';
 import { useTheme } from '../../src/context/ThemeContext';
+import { cardShadow } from '../../src/constants/shadows';
 import { monthRange, weekComparisonAnchor, weekRange } from '../../src/utils/dateRange';
 
 interface CategoryStat {
@@ -29,7 +30,7 @@ interface WeekCompareItem {
 }
 
 export default function StatisticsScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { width } = useWindowDimensions();
   const [currentMonth, setCurrentMonth] = useState(dayjs());
   const [totalExpense, setTotalExpense] = useState(0);
@@ -151,7 +152,7 @@ export default function StatisticsScreen() {
         </View>
 
         {/* 分类饼图 */}
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+        <View style={[styles.card, { backgroundColor: colors.surface }, !isDark && cardShadow]}>
           <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>支出分类分布</Text>
           <PieChart data={categoryStats} size={Math.min(width - 80, 240)} />
           {/* 图例 */}
@@ -168,7 +169,7 @@ export default function StatisticsScreen() {
         </View>
 
         {/* 分类周趋势 */}
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+        <View style={[styles.card, { backgroundColor: colors.surface }, !isDark && cardShadow]}>
           <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>分类周趋势</Text>
           <Text style={[styles.weekRange, { color: colors.textHint }]}>
             {weekAnchor.startOf('week').format('M/D')} - {weekAnchor.endOf('week').format('M/D')} vs{' '}
@@ -232,7 +233,7 @@ export default function StatisticsScreen() {
         </View>
 
         {/* 排行 */}
-        <View style={[styles.card, { backgroundColor: colors.surface }]}>
+        <View style={[styles.card, { backgroundColor: colors.surface }, !isDark && cardShadow]}>
           <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>支出排行</Text>
           {categoryStats.length === 0 ? (
             <Text style={[styles.noData, { color: colors.textHint }]}>本月暂无支出</Text>

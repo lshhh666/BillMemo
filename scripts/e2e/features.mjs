@@ -11,12 +11,11 @@ export async function run(ctx, { appUrl, downloadDir }) {
   await ctx.waitText('还没有账单记录', 120000);
 
   console.log('   记一笔 88');
-  await ctx.clickText('记账');
+  await ctx.clickLabel('记一笔');
   await ctx.waitText('选择分类');
   await ctx.clickText('8');
   await ctx.clickText('8');
   await ctx.clickText('保存');
-  await ctx.clickText('首页');
   await ctx.waitText('-88.00');
 
   console.log('   点击记录进入编辑，切换类型金额应保留，改成 85');
@@ -74,7 +73,8 @@ export async function run(ctx, { appUrl, downloadDir }) {
   );
 
   console.log('   再记一笔 66 制造差异，然后从备份恢复');
-  await ctx.clickText('记账');
+  await ctx.clickText('首页'); // "+" 在首页上，先从"我的"页回来
+  await ctx.clickLabel('记一笔');
   await ctx.waitText('选择分类');
   await ctx.clickText('6');
   await ctx.clickText('6');

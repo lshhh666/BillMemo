@@ -40,7 +40,13 @@ export function findChrome() {
   return null;
 }
 
-export async function launchChrome({ port, width = 420, height = 900 }) {
+/**
+ * 启动无头 Chrome，调试端口由系统随机分配（--remote-debugging-port=0），
+ * 从配置目录的 DevToolsActivePort 文件读回实际端口。
+ * 不用固定端口：固定端口会被上一轮遗留的实例占住，新实例绑不上端口却照常运行，
+ * 测试就会一直操作旧页面（表现为"莫名加载旧版本代码"）。
+ */
+export async function launchChrome({ width = 420, height = 900 } = {}) {
   const exe = findChrome();
   if (!exe) throw new Error('没有找到 Chrome / Edge，可通过环境变量 CHROME_PATH 指定可执行文件路径');
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'purecash-e2e-'));
@@ -48,7 +54,7 @@ export async function launchChrome({ port, width = 420, height = 900 }) {
     exe,
     [
       '--headless=new',
-      `--remote-debugging-port=${port}`,
+      '--remote-debugging-port=0',
       `--user-data-dir=${profile}`,
       '--no-first-run',
       '--no-default-browser-check',
@@ -57,15 +63,21 @@ export async function launchChrome({ port, width = 420, height = 900 }) {
     ],
     { stdio: 'ignore' },
   );
+
+  const portFile = path.join(profile, 'DevToolsActivePort');
   for (let i = 0; i < 60; i++) {
     try {
-      const res = await fetch(`http://127.0.0.1:${port}/json/version`);
-      if (res.ok) return { child, profile };
+      const content = fs.readFileSync(portFile, 'utf8').trim();
+      const port = Number(content.split('\n')[0]);
+      if (port > 0) {
+        const res = await fetch(`http://127.0.0.1:${port}/json/version`);
+        if (res.ok) return { child, profile, port };
+      }
     } catch {}
     await sleep(500);
   }
   killChrome({ child, profile });
-  throw new Error('无头 Chrome 启动超时');
+  throw new Error(`无头 Chrome 启动超时（exitCode=${child.exitCode}）`);
 }
 
 export function killChrome({ child, profile }) {
@@ -208,6 +220,30 @@ export async function connect({ port, downloadDir, log = console.log }) {
     await sleep(500);
   };
 
+  // 点击带 aria-label 的元素（纯图标按钮，如右下角的 "+"）
+  const clickLabel = async (label) => {
+    const result = await evalJs(`(() => {
+      const el = document.querySelector(${JSON.stringify(`[aria-label="${label}"]`)});
+      if (!el) {
+        const labels = [...document.querySelectorAll('[aria-label]')].map((e) => e.getAttribute('aria-label'));
+        return { missing: true, labels };
+      }
+      el.scrollIntoView({ block: 'center' });
+      const r = el.getBoundingClientRect();
+      const x = r.x + r.width / 2, y = r.y + r.height / 2;
+      const hit = document.elementFromPoint(x, y);
+      if (hit && (hit === el || el.contains(hit) || hit.contains(el))) return { x, y };
+      return { blocked: true, hit: hit ? hit.tagName + ' "' + (hit.textContent || '').trim().slice(0, 20) + '"' : 'none' };
+    })()`);
+    if (!result || result.missing) {
+      throw new Error(`找不到带 aria-label 的元素：「${label}」，页面上现有的标签：${JSON.stringify(result?.labels ?? [])}`);
+    }
+    if (result.blocked) {
+      throw new Error(`aria-label「${label}」的元素被遮挡（挡住它的是 ${result.hit}）`);
+    }
+    await clickAt(result);
+  };
+
   fs.mkdirSync(REPORT_DIR, { recursive: true });
   const shot = async (name) => {
     const result = await send('Page.captureScreenshot', { format: 'png' });
@@ -244,6 +280,7 @@ export async function connect({ port, downloadDir, log = console.log }) {
     clickAt,
     clickText,
     locateText,
+    clickLabel,
     clickSiblingOf,
     typeIntoInput,
     shot,

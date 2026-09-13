@@ -1,4 +1,4 @@
-// 补充截图：深色模式 + 超支状态的首页预算卡
+// 视觉升级截图：首页浅色 / 统计 / 首页深色
 import { launchChrome, killChrome, connect, sleep } from './lib.mjs';
 
 const appUrl = process.env.E2E_APP_URL ?? 'http://localhost:8082/';
@@ -14,16 +14,30 @@ try {
   await ctx.clickText('8');
   await ctx.clickText('8');
   await ctx.clickText('保存');
+  await ctx.waitText('-88.00');
+  await sleep(600);
+
   await ctx.clickText('我的');
   await ctx.waitText('月度预算');
-  await ctx.typeIntoInput('input[placeholder*="预算"]', '50'); // 支出 88 > 50，制造超支
+  await ctx.typeIntoInput('input[placeholder*="预算"]', '1000');
   await ctx.clickText('保存');
-  await sleep(800);
-  await ctx.clickText('深色模式');
   await sleep(600);
   await ctx.clickText('首页');
-  await sleep(800);
-  await ctx.shot('ui-04-over-budget-dark');
+  await sleep(600);
+  await ctx.shot('visual-01-home-light');
+
+  await ctx.clickText('统计');
+  await ctx.waitText('支出分类分布');
+  await sleep(600);
+  await ctx.shot('visual-02-statistics');
+
+  await ctx.clickText('我的');
+  await ctx.waitText('深色模式');
+  await ctx.clickText('深色模式');
+  await sleep(500);
+  await ctx.clickText('首页');
+  await sleep(600);
+  await ctx.shot('visual-03-home-dark');
   console.log('done');
 } finally {
   ctx.close();

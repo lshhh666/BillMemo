@@ -33,15 +33,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="record"
-        options={{
-          title: '记账',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="add-circle" size={size + 2} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="statistics"
         options={{
           title: '统计',
