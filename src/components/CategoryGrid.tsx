@@ -2,11 +2,13 @@ import React, { useCallback } from 'react';
 import {
   View,
   Text,
+  Image,
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../context/ThemeContext';
+import { categoryIconSource } from '../constants/categoryIcons';
 import type { Category } from '../types';
 
 interface Props {
@@ -36,6 +38,7 @@ export function CategoryGrid({ categories, selected, onSelect, type }: Props) {
       <View style={styles.grid}>
         {categories.map((cat) => {
           const isSelected = selected === cat.name;
+          const iconSource = categoryIconSource(cat.name);
           return (
             <TouchableOpacity
               key={cat.id}
@@ -59,7 +62,11 @@ export function CategoryGrid({ categories, selected, onSelect, type }: Props) {
                   },
                 ]}
               >
-                <Text style={styles.icon}>{cat.icon}</Text>
+                {iconSource ? (
+                  <Image source={iconSource} style={styles.catIcon} />
+                ) : (
+                  <Text style={styles.icon}>{cat.icon}</Text>
+                )}
               </View>
               <Text
                 style={[
@@ -109,6 +116,11 @@ const styles = StyleSheet.create({
   },
   icon: {
     fontSize: 18,
+  },
+  catIcon: {
+    width: 22,
+    height: 22,
+    resizeMode: 'contain',
   },
   name: {
     fontSize: 11,

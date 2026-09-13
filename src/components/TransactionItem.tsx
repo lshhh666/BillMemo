@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet } from 'react-native';
 import { useTheme } from '../context/ThemeContext';
+import { categoryIconSource } from '../constants/categoryIcons';
 import type { Transaction, Category } from '../types';
 
 interface Props {
@@ -15,11 +16,16 @@ export const TransactionItem = memo(function TransactionItem({
   const { colors } = useTheme();
   const cat = categories.find((c) => c.name === transaction.category_name);
   const isExpense = transaction.type === 'expense';
+  const iconSource = categoryIconSource(transaction.category_name);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
       <View style={[styles.iconWrap, { backgroundColor: isExpense ? colors.expenseLight : colors.primaryLight }]}>
-        <Text style={styles.icon}>{cat?.icon ?? '📌'}</Text>
+        {iconSource ? (
+          <Image source={iconSource} style={styles.catIcon} />
+        ) : (
+          <Text style={styles.icon}>{cat?.icon ?? '📌'}</Text>
+        )}
       </View>
       <View style={styles.info}>
         <Text style={[styles.category, { color: colors.textPrimary }]}>{transaction.category_name}</Text>
@@ -64,6 +70,11 @@ const styles = StyleSheet.create({
   },
   icon: {
     fontSize: 18,
+  },
+  catIcon: {
+    width: 22,
+    height: 22,
+    resizeMode: 'contain',
   },
   info: {
     flex: 1,

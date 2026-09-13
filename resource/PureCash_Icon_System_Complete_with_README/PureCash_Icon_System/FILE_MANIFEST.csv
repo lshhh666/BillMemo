@@ -1,0 +1,18 @@
+﻿file,key,type,usage
+brand/app-icon.png,app-icon,brand,正式App主图标/手机桌面/商店展示
+brand/app-icon.svg,app-icon,brand,矢量母版/导出不同尺寸
+brand/android/adaptive-foreground.svg,adaptive-foreground,android,Android Adaptive Icon前景
+brand/android/adaptive-background.svg,adaptive-background,android,Android Adaptive Icon满版背景（无圆角）
+brand/mono-icon.svg,mono-icon,brand,黑白/系统单色图标
+brand/splash-icon.svg,splash-icon,brand,启动页Splash图标
+web/favicon-16.svg,favicon,web,16px浏览器Favicon极简版
+categories/food.svg,food,category,餐饮
+categories/transport.svg,transport,category,交通
+categories/shopping.svg,shopping,category,购物
+categories/entertainment.svg,entertainment,category,娱乐
+categories/housing.svg,housing,category,居住
+categories/medical.svg,medical,category,医疗
+categories/other.svg,other,category,其他/杂项（收入支出共用）
+categories/salary.svg,salary,category,工资
+categories/freelance.svg,freelance,category,兼职/自由职业
+categories/investment.svg,investment,category,理财/投资收益
