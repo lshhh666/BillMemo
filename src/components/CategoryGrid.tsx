@@ -55,7 +55,7 @@ export function CategoryGrid({ categories, selected, onSelect, type }: Props) {
               <View
                 style={[
                   styles.iconWrap,
-                  { backgroundColor: colors.background },
+                  { backgroundColor: type === 'expense' ? colors.expenseLight : colors.primaryLight },
                   isSelected && {
                     borderWidth: 2,
                     borderColor: accentColor,
@@ -63,7 +63,7 @@ export function CategoryGrid({ categories, selected, onSelect, type }: Props) {
                 ]}
               >
                 {iconSource ? (
-                  <Image source={iconSource} style={styles.catIcon} />
+                  <Image source={iconSource} style={[styles.catIcon, { tintColor: colors.primary }]} />
                 ) : (
                   <Text style={styles.icon}>{cat.icon}</Text>
                 )}
