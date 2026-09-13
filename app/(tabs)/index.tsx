@@ -26,13 +26,14 @@ import {
 } from '../../src/database/transactions';
 import { requestEdit } from '../../src/state/editRequest';
 import { useTheme } from '../../src/context/ThemeContext';
+import { cardShadow } from '../../src/constants/shadows';
 import { showAlert } from '../../src/utils/alert';
 import { monthRange } from '../../src/utils/dateRange';
 import { groupByDate, type DailyGroup } from '../../src/utils/grouping';
 import type { Transaction, Category, MonthlySummary, Budget } from '../../src/types';
 
 export default function HomeScreen() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [groups, setGroups] = useState<DailyGroup[]>([]);
   const [summary, setSummary] = useState<MonthlySummary>({
     totalExpense: 0,
@@ -153,7 +154,7 @@ export default function HomeScreen() {
           onBudgetPress={() => router.push('/profile')}
         />
         {searchStats && (
-          <View style={[styles.searchStats, { backgroundColor: colors.surface }]}>
+          <View style={[styles.searchStats, { backgroundColor: colors.surface }, !isDark && cardShadow]}>
             <View style={styles.statItem}>
               <Text style={[styles.statLabel, { color: colors.textHint }]}>找到记录</Text>
               <Text style={[styles.statValue, { color: colors.textPrimary }]}>{searchStats.count} 笔</Text>
@@ -167,7 +168,7 @@ export default function HomeScreen() {
         )}
       </>
     ),
-    [summary, currentMonth, budget, searchStats, colors],
+    [summary, currentMonth, budget, searchStats, colors, isDark],
   );
 
   const renderItem = useCallback(
@@ -175,10 +176,11 @@ export default function HomeScreen() {
       <View>
         <View style={[styles.dateHeader, { backgroundColor: colors.background }]}>
           <Text style={[styles.dateText, { color: colors.textHint }]}>{item.dayLabel}</Text>
-          <Text style={[styles.dateAmount, { color: colors.textHint }]}>
-            {item.dayTotal >= 0 ? '结余' : '支出'} ¥
-            {Math.abs(item.dayTotal).toFixed(2)}
-          </Text>
+          <View style={[styles.dayPill, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.dayPillText, { color: colors.textHint }]}>
+              {item.dayTotal >= 0 ? '结余' : '支出'} ¥{Math.abs(item.dayTotal).toFixed(2)}
+            </Text>
+          </View>
         </View>
         {item.transactions.map((t) => (
           <SwipeableRow
@@ -381,8 +383,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
   },
-  dateAmount: {
-    fontSize: 13,
+  dayPill: {
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  dayPillText: {
+    fontSize: 12,
+    fontVariant: ['tabular-nums'],
   },
   empty: {
     alignItems: 'center',

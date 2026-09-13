@@ -14,11 +14,8 @@ interface Props {
   innerRadius?: number;
 }
 
-const PIE_COLORS = [
-  '#FF6B6B', '#FFA94D', '#FFD43B', '#69DB7C',
-  '#4DABF7', '#DA77F2', '#FF8787', '#74C0FC',
-  '#63E6BE', '#FCC419', '#845EF7', '#20C997',
-];
+// 同族色阶：绿系四档（金额越大越深）+ 琥珀 + 灰，避免类别多时变成"彩虹图"
+const PIE_COLORS = ['#059657', '#07C160', '#54DE8F', '#A5EFC8', '#FFB020', '#BDBDBD'];
 
 export function PieChart({ data, size = 200, innerRadius = 0.55 }: Props) {
   const { colors } = useTheme();
@@ -95,7 +92,8 @@ export function PieChart({ data, size = 200, innerRadius = 0.55 }: Props) {
           )}
         </G>
         {slices.map((s, i) => {
-          if (s.percentage < 0.05) return null;
+          // 只在前四档（深色系）上显示百分比标签，浅绿底上白字看不清
+          if (s.percentage < 0.05 || i % 6 >= 4) return null;
           return (
             <SvgText
               key={`t${i}`}
@@ -113,9 +111,9 @@ export function PieChart({ data, size = 200, innerRadius = 0.55 }: Props) {
         })}
         <SvgText
           x={cx}
-          y={cy - 6}
+          y={cy - 8}
           fill={colors.textPrimary}
-          fontSize={13}
+          fontSize={15}
           fontWeight="700"
           textAnchor="middle"
           alignmentBaseline="central"
@@ -124,10 +122,10 @@ export function PieChart({ data, size = 200, innerRadius = 0.55 }: Props) {
         </SvgText>
         <SvgText
           x={cx}
-          y={cy + 14}
+          y={cy + 16}
           fill={colors.textHint}
-          fontSize={16}
-          fontWeight="600"
+          fontSize={22}
+          fontWeight="800"
           textAnchor="middle"
           alignmentBaseline="central"
         >

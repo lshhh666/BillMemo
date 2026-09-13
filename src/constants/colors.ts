@@ -5,6 +5,7 @@ const LightColors = {
   primaryLight: '#E8F5E9',
 
   expense: '#E74C3C',
+  expenseLight: 'rgba(231,76,60,0.08)',
   income: '#07C160',
 
   background: '#F5F5F5',
@@ -28,6 +29,7 @@ const DarkColors = {
   primaryLight: 'rgba(37,211,102,0.15)',
 
   expense: '#FF6B6B',
+  expenseLight: 'rgba(255,107,107,0.12)',
   income: '#51CF66',
 
   background: '#121212',

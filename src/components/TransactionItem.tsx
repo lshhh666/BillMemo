@@ -18,7 +18,7 @@ export const TransactionItem = memo(function TransactionItem({
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-      <View style={[styles.iconWrap, { backgroundColor: colors.background }]}>
+      <View style={[styles.iconWrap, { backgroundColor: isExpense ? colors.expenseLight : colors.primaryLight }]}>
         <Text style={styles.icon}>{cat?.icon ?? '📌'}</Text>
       </View>
       <View style={styles.info}>
