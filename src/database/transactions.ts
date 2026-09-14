@@ -68,6 +68,21 @@ export interface CategoryExpense {
   total: number;
 }
 
+/** 自某日起各分类的记账次数（按类型），用于"常用分类排前" */
+export function countCategoryUsageSince(
+  type: TransactionType,
+  since: string,
+): Record<string, number> {
+  const rows = getDatabase().getAllSync<{ category_name: string; cnt: number }>(
+    'SELECT category_name, COUNT(*) AS cnt FROM transactions WHERE type = ? AND date >= ? GROUP BY category_name',
+    type,
+    since,
+  );
+  const usage: Record<string, number> = {};
+  rows.forEach((row) => (usage[row.category_name] = row.cnt));
+  return usage;
+}
+
 /** 按分类汇总区间内支出；聚合在库里完成，耗时与记录数量基本无关 */
 export function sumExpenseByCategoryBetween(range: DateRange): CategoryExpense[] {
   return getDatabase().getAllSync<CategoryExpense>(

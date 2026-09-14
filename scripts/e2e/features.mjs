@@ -97,4 +97,27 @@ export async function run(ctx, { appUrl, downloadDir }) {
     '恢复后应只剩备份里的 85，之后记的 66 应消失',
   );
   await ctx.shot('features-02-after-restore');
+
+  console.log('   常用分类排前：记两笔「交通」后，弹层里交通应排第一');
+  for (let i = 0; i < 2; i++) {
+    await ctx.clickLabel('记一笔');
+    await ctx.waitText('选择分类');
+    await ctx.clickText('交通');
+    await ctx.clickText('1');
+    await ctx.clickText('保存');
+    await sleep(700);
+  }
+  await ctx.clickLabel('记一笔');
+  await ctx.waitText('选择分类');
+  const order = await ctx.evalJs(`(() => {
+    const names = ['餐饮','交通','购物','娱乐','居住','医疗','其他'];
+    const label = [...document.querySelectorAll('div')].find(e => e.childElementCount === 0 && e.textContent.trim() === '选择分类');
+    return [...document.querySelectorAll('div')]
+      .filter(e => e.childElementCount === 0 && names.includes(e.textContent.trim()) && e.getBoundingClientRect().width > 0
+        && (label.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING))
+      .map(e => e.textContent.trim());
+  })()`);
+  expect(order[0] === '交通' && order[1] === '餐饮', `弹层分类顺序应为 交通、餐饮…，实际：${order.join('、')}`);
+  await ctx.clickAt({ x: 210, y: 30 }); // 点背景关闭弹层
+  await sleep(400);
 }

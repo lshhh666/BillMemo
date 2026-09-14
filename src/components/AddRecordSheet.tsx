@@ -21,7 +21,8 @@ import { AmountInput } from './AmountInput';
 import { CategoryGrid } from './CategoryGrid';
 import { DatePickerModal } from './DatePickerModal';
 import { listCategoriesByType } from '../database/categories';
-import { insertTransaction, updateTransaction } from '../database/transactions';
+import { countCategoryUsageSince, insertTransaction, updateTransaction } from '../database/transactions';
+import { rankCategories } from '../utils/categoryRanking';
 import { takeEditRequest } from '../state/editRequest';
 import { useTheme } from '../context/ThemeContext';
 import { showAlert } from '../utils/alert';
@@ -48,7 +49,15 @@ export function AddRecordSheet({ visible, onClose, onSaved }: Props) {
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(editRequest?.id ?? null);
 
-  const categories = useMemo(() => listCategoriesByType(recordType), [recordType]);
+  // 分类按最近 30 天使用次数排前（次数相同保持原顺序），默认选中的就是最常用分类
+  const categories = useMemo(() => {
+    const all = listCategoriesByType(recordType);
+    const usage = countCategoryUsageSince(
+      recordType,
+      dayjs().subtract(29, 'day').format('YYYY-MM-DD'),
+    );
+    return rankCategories(all, usage);
+  }, [recordType]);
   const currentCategory = categories.some((c) => c.name === selectedCategory)
     ? selectedCategory
     : categories.length > 0
