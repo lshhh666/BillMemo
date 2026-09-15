@@ -5,6 +5,7 @@ import {
   TextInput,
   StyleSheet,
   TouchableOpacity,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
@@ -49,6 +50,32 @@ export default function HomeScreen() {
   const [sheetSeq, setSheetSeq] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 悬浮按钮在滚动期间隐藏，避免盖住正在看的金额；停止滚动约半秒后浮现
+  const [fabOpacity] = useState(() => new Animated.Value(1));
+  const [fabHidden, setFabHidden] = useState(false);
+  const fabRevealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelFabReveal = useCallback(() => {
+    if (fabRevealTimer.current) {
+      clearTimeout(fabRevealTimer.current);
+      fabRevealTimer.current = null;
+    }
+  }, []);
+
+  const hideFab = useCallback(() => {
+    cancelFabReveal();
+    setFabHidden(true);
+    Animated.timing(fabOpacity, { toValue: 0, duration: 120, useNativeDriver: true }).start();
+  }, [cancelFabReveal, fabOpacity]);
+
+  const scheduleFabReveal = useCallback(() => {
+    cancelFabReveal();
+    fabRevealTimer.current = setTimeout(() => {
+      setFabHidden(false);
+      Animated.spring(fabOpacity, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 6 }).start();
+    }, 450);
+  }, [cancelFabReveal, fabOpacity]);
 
   // 每次打开都换 key 重挂载弹层，让它从编辑请求里重新初始化
   const openSheet = useCallback(() => {
@@ -253,6 +280,10 @@ export default function HomeScreen() {
         keyExtractor={keyExtractor}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.list}
+        onScrollBeginDrag={hideFab}
+        onMomentumScrollBegin={cancelFabReveal}
+        onScrollEndDrag={scheduleFabReveal}
+        onMomentumScrollEnd={scheduleFabReveal}
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={[styles.emptyIconWrap, { backgroundColor: colors.primaryLight }]}>
@@ -280,16 +311,21 @@ export default function HomeScreen() {
         }
       />
 
-      {/* 右下角悬浮的记账按钮 */}
-      <TouchableOpacity
-        style={[styles.fab, { backgroundColor: colors.primary }]}
-        onPress={openSheet}
-        activeOpacity={0.85}
-        accessibilityRole="button"
-        accessibilityLabel="记一笔"
+      {/* 右下角悬浮的记账按钮：滚动时隐藏让路，停下来再浮现 */}
+      <Animated.View
+        style={[styles.fabWrap, { opacity: fabOpacity, transform: [{ scale: fabOpacity }] }]}
+        pointerEvents={fabHidden ? 'none' : 'auto'}
       >
-        <Ionicons name="add" size={30} color="#FFFFFF" />
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.fab, { backgroundColor: colors.primary }]}
+          onPress={openSheet}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="记一笔"
+        >
+          <Ionicons name="add" size={30} color="#FFFFFF" />
+        </TouchableOpacity>
+      </Animated.View>
 
       <AddRecordSheet
         key={sheetSeq}
@@ -370,7 +406,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
   list: {
-    paddingBottom: 20,
+    // 底部留出悬浮按钮的高度，最后几笔能滚到按钮上方不被遮住
+    paddingBottom: 140,
   },
   dateHeader: {
     flexDirection: 'row',
@@ -419,10 +456,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  fab: {
+  fabWrap: {
     position: 'absolute',
     right: 20,
     bottom: 76,
+  },
+  fab: {
     width: 54,
     height: 54,
     borderRadius: 27,
